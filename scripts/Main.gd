@@ -158,11 +158,20 @@ func _on_set_user_id_pressed() -> void:
 
 func _on_set_custom_value_pressed() -> void:
 	if crashlytics:
-		log_message("\n[Crashlytics] Setting custom values (string, int, bool, float)...")
+		log_message("\n[Crashlytics] Setting custom values (individual + auto)...")
+
+		# individual typed calls
 		crashlytics.set_custom_value_string("demo_string", "demo_value_" + str(randi() % 10000))
 		crashlytics.set_custom_value_int("demo_int", randi() % 1000)
 		crashlytics.set_custom_value_bool("demo_bool", randi() % 2 == 0)
 		crashlytics.set_custom_value_float("demo_float", randf() * 100.0)
+
+		# auto-dispatch helper
+		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_str", "auto_" + str(randi() % 1000))
+		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_int", randi() % 100)
+		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_bool", randi() % 2 == 0)
+		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_float", randf() * 100.0)
+
 		log_message("[Crashlytics] ✓ Custom values set")
 	else:
 		log_message("[Crashlytics] Plugin not available")

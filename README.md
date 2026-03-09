@@ -251,6 +251,10 @@ func _on_analytics_initialized(success: bool):
 
 ### Firebase Crashlytics
 
+The native API exposes typed methods. For a single entry point that picks the right type from `value`, use the helper class `FirebaseCrashlyticsHelper` (in `addons/godotx_firebase/firebase_crashlytics_helper.gd`).
+
+**Individual (typed) methods:**
+
 ```gdscript
 var crashlytics
 
@@ -259,20 +263,37 @@ func _ready():
         crashlytics = Engine.get_singleton("GodotxFirebaseCrashlytics")
         crashlytics.crashlytics_initialized.connect(_on_crashlytics_initialized)
 
-# Call this after Firebase Core is initialized
 func initialize_crashlytics():
     if crashlytics:
         crashlytics.initialize()
 
 func _on_crashlytics_initialized(success: bool):
     if success:
-        # Now you can use Crashlytics
         crashlytics.set_user_id("user_123")
-        crashlytics.set_custom_value("current_level", "5")   # string
-        crashlytics.set_custom_value("score", 1000)          # int
-        crashlytics.set_custom_value("premium", true)        # bool
-        crashlytics.set_custom_value("progress", 0.85)       # float
+        crashlytics.set_custom_value_string("current_level", "5")
+        crashlytics.set_custom_value_int("score", 1000)
+        crashlytics.set_custom_value_bool("premium", true)
+        crashlytics.set_custom_value_float("progress", 0.85)
         crashlytics.log_message("Player entered level 5")
+```
+
+**Auto-dispatch helper (one call, type from `value`):**
+
+```gdscript
+# Uses FirebaseCrashlyticsHelper; no need to register as autoload (class_name is enough).
+func _on_crashlytics_initialized(success: bool):
+    if success and crashlytics:
+        FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "current_level", "5")
+        FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "score", 1000)
+        FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "premium", true)
+        FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "progress", 0.85)
+```
+
+Or add a wrapper in your script and call `set_custom_value(key, value)`:
+
+```gdscript
+func set_custom_value(key: String, value) -> void:
+    FirebaseCrashlyticsHelper.set_custom_value(crashlytics, key, value)
 ```
 
 ### Firebase Messaging
@@ -494,8 +515,9 @@ Each `.aar` file contains:
 ```
 firebase/
 ├── addons/
-│   └── godotx_firebase/           # ✨ Godot plugin (copy to your project)
-│       ├── export_plugin.gd       # Export configuration & module bundling
+│   └── godotx_firebase/                    # ✨ Godot plugin (copy to your project)
+│       ├── export_plugin.gd                # Export configuration & module bundling
+│       ├── firebase_crashlytics_helper.gd  # set_custom_value(key, value) auto-dispatch
 │       └── plugin.cfg
 │
 ├── source/                        # 🛠️ Source code for all plugins
