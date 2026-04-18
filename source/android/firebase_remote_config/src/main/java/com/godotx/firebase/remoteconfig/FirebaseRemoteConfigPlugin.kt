@@ -1,12 +1,14 @@
 package com.godotx.firebase.remoteconfig
 
 import android.util.Log
+import com.google.firebase.FirebaseApp
 import com.google.firebase.remoteconfig.ConfigUpdate
 import com.google.firebase.remoteconfig.ConfigUpdateListener
 import com.google.firebase.remoteconfig.FirebaseRemoteConfig
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigException
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigFetchThrottledException
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings
+import com.google.firebase.remoteconfig.ConfigUpdateListenerRegistration
 import org.godotengine.godot.Dictionary
 import org.godotengine.godot.Godot
 import org.godotengine.godot.plugin.GodotPlugin
@@ -21,6 +23,8 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
         FirebaseRemoteConfig.getInstance()
     }
 
+    private var listenerRegistration: ConfigUpdateListenerRegistration? = null
+
     companion object {
         private val TAG = FirebaseRemoteConfigPlugin::class.java.simpleName
         private const val FETCH_SUCCESS   = 0
@@ -31,7 +35,6 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     init {
         Log.v(TAG, "Firebase Remote Config plugin loaded")
-        setupRealtimeUpdates()
     }
 
     override fun getPluginName(): String {
@@ -40,21 +43,40 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     override fun getPluginSignals(): Set<SignalInfo> {
         return setOf(
+            SignalInfo("remote_config_initialized", Boolean::class.javaObjectType),
             SignalInfo("fetch_completed", Int::class.javaObjectType),
             SignalInfo("config_updated", Array<String>::class.java)
         )
     }
 
+    @UsedByGodot
+    fun initialize() {
+        val ctx = activity
+        if (ctx == null) {
+            Log.e(TAG, "initialize: activity is null")
+            emitSignal("remote_config_initialized", false)
+            return
+        }
+
+        if (FirebaseApp.getApps(ctx).isEmpty()) {
+            Log.e(TAG, "Firebase is not initialized — call FirebaseCore.initialize() first")
+            emitSignal("remote_config_initialized", false)
+            return
+        }
+
+        setupRealtimeUpdates()
+        Log.d(TAG, "Firebase Remote Config initialized")
+        emitSignal("remote_config_initialized", true)
+    }
+
     private fun setupRealtimeUpdates() {
-        remoteConfig.addOnConfigUpdateListener(object : ConfigUpdateListener {
+        listenerRegistration = remoteConfig.addOnConfigUpdateListener(object : ConfigUpdateListener {
             override fun onUpdate(configUpdate: ConfigUpdate) {
                 Log.d(TAG, "Config updated keys: " + configUpdate.updatedKeys)
-                
-                // Automatically activate on update to match iOS behavior
                 remoteConfig.activate().addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         val updatedKeysArray = configUpdate.updatedKeys.toTypedArray()
-                        emitSignal("config_updated", updatedKeysArray)
+                        emitSignal("config_updated", updatedKeysArray as Any)
                     }
                 }
             }
@@ -81,8 +103,9 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun get_string(key: String, defaultValue: String): String {
-        val value = remoteConfig.getString(key)
-        return if (value.isEmpty()) defaultValue else value
+        val value = remoteConfig.getValue(key)
+        return if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) defaultValue
+               else value.asString()
     }
 
     @UsedByGodot
@@ -108,17 +131,16 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun get_dictionary(key: String): Dictionary {
-        val jsonStr = remoteConfig.getString(key)
+        val value = remoteConfig.getValue(key)
         val dict = Dictionary()
-        if (jsonStr.isEmpty()) return dict
+        if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) return dict
 
-        try {
-            val jsonObject = JSONObject(jsonStr)
-            return jsonToDictionary(jsonObject)
+        return try {
+            jsonToDictionary(JSONObject(value.asString()))
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing JSON for key: $key", e)
+            dict
         }
-        return dict
     }
 
     @UsedByGodot
@@ -126,9 +148,7 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
         val map = mutableMapOf<String, Any>()
         for (key in defaults.keys) {
             val value = defaults[key]
-            if (value != null) {
-                map[key] = value
-            }
+            if (value != null) map[key] = value
         }
         remoteConfig.setDefaultsAsync(map)
     }
@@ -141,14 +161,19 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
         remoteConfig.setConfigSettingsAsync(settings)
     }
 
-    // Helper to convert JSONObject to Godot Dictionary
+    @UsedByGodot
+    fun remove_config_update_listener() {
+        listenerRegistration?.remove()
+        listenerRegistration = null
+        Log.d(TAG, "Config update listener removed")
+    }
+
     private fun jsonToDictionary(json: JSONObject): Dictionary {
         val dict = Dictionary()
         val keys = json.keys()
         while (keys.hasNext()) {
             val key = keys.next()
-            val value = json.get(key)
-            dict[key] = wrapValue(value)
+            dict[key] = wrapValue(json.get(key))
         }
         return dict
     }
@@ -158,9 +183,7 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
             is JSONObject -> jsonToDictionary(value)
             is JSONArray -> {
                 val list = mutableListOf<Any?>()
-                for (i in 0 until value.length()) {
-                    list.add(wrapValue(value.get(i)))
-                }
+                for (i in 0 until value.length()) list.add(wrapValue(value.get(i)))
                 list.toTypedArray()
             }
             JSONObject.NULL -> null
