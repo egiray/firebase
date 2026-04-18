@@ -23,9 +23,10 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     companion object {
         private val TAG = FirebaseRemoteConfigPlugin::class.java.simpleName
-        private const val FETCH_SUCCESS = 0
-        private const val FETCH_FAILURE = 1
-        private const val FETCH_THROTTLED = 2
+        private const val FETCH_SUCCESS   = 0
+        private const val FETCH_CACHED    = 1
+        private const val FETCH_FAILURE   = 2
+        private const val FETCH_THROTTLED = 3
     }
 
     init {
@@ -68,7 +69,8 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
     fun fetch_and_activate() {
         remoteConfig.fetchAndActivate().addOnCompleteListener { task ->
             if (task.isSuccessful) {
-                emitSignal("fetch_completed", FETCH_SUCCESS)
+                val status = if (task.result) FETCH_SUCCESS else FETCH_CACHED
+                emitSignal("fetch_completed", status)
             } else {
                 val status = if (task.exception is FirebaseRemoteConfigFetchThrottledException)
                     FETCH_THROTTLED else FETCH_FAILURE
