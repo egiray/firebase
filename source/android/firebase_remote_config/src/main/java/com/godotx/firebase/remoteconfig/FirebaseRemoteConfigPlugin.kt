@@ -44,6 +44,7 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
     override fun getPluginSignals(): Set<SignalInfo> {
         return setOf(
             SignalInfo("remote_config_initialized", Boolean::class.javaObjectType),
+            SignalInfo("remote_config_error", String::class.java),
             SignalInfo("fetch_completed", Int::class.javaObjectType),
             SignalInfo("config_updated", Array<String>::class.java)
         )
@@ -55,12 +56,14 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
         if (ctx == null) {
             Log.e(TAG, "initialize: activity is null")
             emitSignal("remote_config_initialized", false)
+            emitSignal("remote_config_error", "activity_null")
             return
         }
 
         if (FirebaseApp.getApps(ctx).isEmpty()) {
             Log.e(TAG, "Firebase is not initialized — call FirebaseCore.initialize() first")
             emitSignal("remote_config_initialized", false)
+            emitSignal("remote_config_error", "firebase_not_initialized")
             return
         }
 
@@ -83,6 +86,7 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
             override fun onError(error: FirebaseRemoteConfigException) {
                 Log.e(TAG, "Config update error", error)
+                emitSignal("remote_config_error", error.message ?: "config_update_error")
             }
         })
     }
