@@ -171,6 +171,24 @@ class AndroidExportPlugin extends EditorExportPlugin:
 			"default_value": "25.0.1"
 		})
 
+		# Enable Remote Config
+		options.append({
+			"option": {
+				"name": "firebase/enable_remote_config",
+				"type": TYPE_BOOL
+			},
+			"default_value": false
+		})
+
+		# Remote Config version
+		options.append({
+			"option": {
+				"name": "firebase/remote_config_version",
+				"type": TYPE_STRING
+			},
+			"default_value": "22.0.1"
+		})
+
 		return options
 
 
@@ -201,6 +219,12 @@ class AndroidExportPlugin extends EditorExportPlugin:
 			dependencies.append("com.google.firebase:firebase-messaging:" + version)
 			print("[Firebase] Adding Messaging dependency (v%s)" % version)
 
+		# Remote Config
+		if get_option("firebase/enable_remote_config"):
+			var version = get_option("firebase/remote_config_version")
+			dependencies.append("com.google.firebase:firebase-config-ktx:" + version)
+			print("[Firebase] Adding Remote Config dependency (v%s)" % version)
+
 		return dependencies
 
 
@@ -222,6 +246,9 @@ class AndroidExportPlugin extends EditorExportPlugin:
 
 		if get_option("firebase/enable_messaging"):
 			modules.append("firebase_messaging")
+
+		if get_option("firebase/enable_remote_config"):
+			modules.append("firebase_remote_config")
 
 		# Search for AARs in each module's directory
 		for module in modules:
