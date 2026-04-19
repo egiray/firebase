@@ -49,7 +49,8 @@ func initialize_firebase_plugins() -> void:
 		messaging.messaging_permission_granted.connect(_on_permission_granted)
 		messaging.messaging_permission_denied.connect(_on_permission_denied)
 		messaging.messaging_token_received.connect(_on_token_received)
-		messaging.messaging_apn_token_received.connect(_on_apn_token_received)
+		if messaging.has_signal("messaging_apn_token_received"):
+			messaging.messaging_apn_token_received.connect(_on_apn_token_received)
 		messaging.messaging_message_received.connect(_on_message_received)
 		messaging.messaging_error.connect(_on_error.bind("Messaging"))
 		log_message("✓ Firebase Messaging plugin found")
