@@ -168,94 +168,100 @@ func _on_set_custom_value_pressed() -> void:
 		crashlytics.set_custom_value_float("demo_float", randf() * 100.0)
 
 		# auto-dispatch helper
-		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_str", "auto_" + str(randi() % 1000))
-		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_int", randi() % 100)
-		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_bool", randi() % 2 == 0)
-		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_float", randf() * 100.0)
+		FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "demo_auto_str", "auto_" + str(randi() % 1000))
+		FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "demo_auto_int", randi() % 100)
+		FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "demo_auto_bool", randi() % 2 == 0)
+		FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "demo_auto_float", randf() * 100.0)
 
 		log_message("[Crashlytics] ✓ Custom values set")
-	else:
+		else:
 		log_message("[Crashlytics] Plugin not available")
 
-func _on_force_crash_pressed() -> void:
-	if crashlytics:
+		func _on_force_crash_pressed() -> void:
+		if crashlytics:
 		log_message("\n[Crashlytics] ⚠ FORCING CRASH - App will close!")
 		update_status("Crashing...", Color.RED)
 		await get_tree().create_timer(0.5).timeout
 		crashlytics.crash()
-	else:
+		else:
 		log_message("[Crashlytics] Plugin not available")
 
-# ============== MESSAGING ==============
-func _on_request_permission_pressed() -> void:
-	if messaging:
+		# ============== MESSAGING ==============
+		func _on_request_permission_pressed() -> void:
+		if messaging:
 		log_message("\n[Messaging] Requesting notification permission...")
 		messaging.request_permission()
 		log_message("[Messaging] Permission request sent")
-	else:
+		else:
 		log_message("[Messaging] Plugin not available")
 
-func _on_get_token_pressed() -> void:
-	if messaging:
+		func _on_get_token_pressed() -> void:
+		if messaging:
 		log_message("\n[Messaging] Requesting FCM token...")
 		update_status("Getting Token...", Color.YELLOW)
 		messaging.get_token()
 
 		# Also request APNs token (iOS only)
 		if OS.get_name() == "iOS":
-			messaging.get_apns_token()
-	else:
+		        messaging.get_apns_token()
+		else:
 		log_message("[Messaging] Plugin not available")
 
-func _on_subscribe_topic_pressed() -> void:
-	if messaging:
+		func _on_subscribe_topic_pressed() -> void:
+		if messaging:
 		var topic = "test_topic"
 		log_message("\n[Messaging] Subscribing to topic: " + topic)
 		messaging.subscribe_to_topic(topic)
 		log_message("[Messaging] Subscribe request sent")
-	else:
+		else:
 		log_message("[Messaging] Plugin not available")
 
-func _on_unsubscribe_topic_pressed() -> void:
-	if messaging:
+		func _on_unsubscribe_topic_pressed() -> void:
+		if messaging:
 		var topic = "test_topic"
 		log_message("\n[Messaging] Unsubscribing from topic: " + topic)
 		messaging.unsubscribe_from_topic(topic)
 		log_message("[Messaging] Unsubscribe request sent")
-	else:
+		else:
 		log_message("[Messaging] Plugin not available")
 
-func _on_permission_granted() -> void:
-	log_message("[Messaging] ✓ Notification permission granted")
-	update_status("Permission Granted", Color.GREEN)
+		func _on_permission_granted() -> void:
+		log_message("[Messaging] ✓ Notification permission granted")
+		update_status("Permission Granted", Color.GREEN)
 
-func _on_permission_denied() -> void:
-	log_message("[Messaging] ⓘ Notification permission denied")
-	log_message("  User declined or disabled notifications in system settings")
-	update_status("Permission Denied", Color.ORANGE)
+		func _on_permission_denied() -> void:
+		log_message("[Messaging] ⓘ Notification permission denied")
+		log_message("  User declined or disabled notifications in system settings")
+		update_status("Permission Denied", Color.ORANGE)
 
-func _on_token_received(token: String) -> void:
-	log_message("[Messaging] ✓ FCM Token received:")
-	log_message("  " + token)
-	update_status("Token Received", Color.GREEN)
+		func _on_token_received(token: String) -> void:
+		log_message("[Messaging] ✓ FCM Token received:")
+		log_message("  " + token)
+		update_status("Token Received", Color.GREEN)
 
-func _on_apn_token_received(token: String) -> void:
-	log_message("[Messaging] ✓ APN Device Token received:")
-	log_message("  " + token)
-	update_status("APN Token Received", Color.GREEN)
+		func _on_apn_token_received(token: String) -> void:
+		log_message("[Messaging] ✓ APN Device Token received:")
+		log_message("  " + token)
+		update_status("APN Token Received", Color.GREEN)
 
-func _on_message_received(title: String, body: String) -> void:
-	log_message("[Messaging] ✓ Message received:")
-	log_message("  Title: " + title)
-	log_message("  Body: " + body)
+		func _on_message_received(title: String, body: String) -> void:
+		log_message("[Messaging] ✓ Message received:")
+		log_message("  Title: " + title)
+		log_message("  Body: " + body)
 
-# ============== GENERAL ==============
-func _on_error(message: String, module: String) -> void:
-	log_message("[" + module + "] ✗ Error: " + message)
-	update_status("Error: " + message, Color.RED)
+		# ============== GENERAL ==============
+		func _on_error(message: String, module: String) -> void:
+		log_message("[" + module + "] ✗ Error: " + message)
+		update_status("Error: " + message, Color.RED)
 
-func _on_clear_log_pressed() -> void:
-	if log_output:
+		func _on_clear_log_pressed() -> void:
+		if log_output:
 		log_output.text = ""
 		log_message("=== Log Cleared ===")
 		update_status("Ready", Color.WHITE)
+
+		func _on_copy_log_pressed() -> void:
+		if log_output:
+		DisplayServer.clipboard_set(log_output.text)
+		update_status("Log Copied", Color.GREEN)
+
