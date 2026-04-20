@@ -88,6 +88,9 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
 
     override fun getPluginSignals(): Set<SignalInfo> {
         return setOf(
+            SignalInfo("messaging_initialized",
+                Boolean::class.javaObjectType
+            ),
             SignalInfo("messaging_permission_granted"),
             SignalInfo("messaging_permission_denied"),
             SignalInfo("messaging_token_received",
@@ -95,6 +98,12 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
             ),
             SignalInfo("messaging_message_received",
                 String::class.java,
+                String::class.java
+            ),
+            SignalInfo("messaging_topic_subscribed",
+                String::class.java
+            ),
+            SignalInfo("messaging_topic_unsubscribed",
                 String::class.java
             ),
             SignalInfo("messaging_error",
@@ -125,6 +134,7 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
 
         if (ctx == null) {
             Log.e(TAG, "initialize: activity is null")
+            emitSignal("messaging_initialized", false)
             emitSignal("messaging_error", "activity_null")
             return
         }
@@ -134,6 +144,7 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
 
             if (apps.isEmpty()) {
                 Log.e(TAG, "Firebase is NOT initialized")
+                emitSignal("messaging_initialized", false)
                 emitSignal("messaging_error", "firebase_not_initialized")
                 return
             }
@@ -141,6 +152,7 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
             Log.d(TAG, "Firebase Messaging initialized (${apps.size} Firebase app(s) found)")
 
             isInitialized = true
+            emitSignal("messaging_initialized", true)
 
             // Emit any notification that was received before initialization (cold start or early resume)
             coldStartIntent?.let { handleIntentMessage(it) }
@@ -149,6 +161,7 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
             deferredToken = null
         } catch (e: Exception) {
             Log.e(TAG, "Firebase initialization check failed", e)
+            emitSignal("messaging_initialized", false)
             emitSignal("messaging_error", e.message ?: "firebase_check_failed")
         }
     }
@@ -209,6 +222,7 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         Log.d(TAG, "Subscribed to topic: $topic")
+                        emitSignal("messaging_topic_subscribed", topic)
                     } else {
                         Log.e(TAG, "Failed to subscribe to topic", task.exception)
                         emitSignal("messaging_error", task.exception?.message ?: "subscribe_failed")
@@ -227,6 +241,7 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
                 .addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         Log.d(TAG, "Unsubscribed from topic: $topic")
+                        emitSignal("messaging_topic_unsubscribed", topic)
                     } else {
                         Log.e(TAG, "Failed to unsubscribe from topic", task.exception)
                         emitSignal("messaging_error", task.exception?.message ?: "unsubscribe_failed")
