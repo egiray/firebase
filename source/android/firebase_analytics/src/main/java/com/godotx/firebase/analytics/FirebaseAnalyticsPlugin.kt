@@ -37,6 +37,14 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
                 String::class.java
             ),
             SignalInfo(
+                "analytics_screen_logged",
+                String::class.java
+            ),
+            SignalInfo(
+                "analytics_property_set",
+                String::class.java
+            ),
+            SignalInfo(
                 "analytics_error",
                 String::class.java
             )
@@ -60,6 +68,47 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
             Log.e(TAG, "Firebase Analytics init failed", e)
             emitSignal("analytics_initialized", false)
             emitSignal("analytics_error", e.message ?: "init_error")
+        }
+    }
+
+    @UsedByGodot
+    fun log_screen_view(screen_name: String, screen_class: String) {
+        val analytics = firebaseAnalytics
+        if (analytics == null) {
+            Log.e(TAG, "Firebase Analytics not initialized")
+            emitSignal("analytics_error", "analytics_not_initialized")
+            return
+        }
+
+        try {
+            val bundle = Bundle()
+            bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, screen_name)
+            bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, screen_class)
+            analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle)
+            Log.d(TAG, "Screen view logged: $screen_name ($screen_class)")
+            emitSignal("analytics_screen_logged", screen_name)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to log screen view", e)
+            emitSignal("analytics_error", e.message ?: "screen_log_error")
+        }
+    }
+
+    @UsedByGodot
+    fun set_user_property(name: String, value: String?) {
+        val analytics = firebaseAnalytics
+        if (analytics == null) {
+            Log.e(TAG, "Firebase Analytics not initialized")
+            emitSignal("analytics_error", "analytics_not_initialized")
+            return
+        }
+
+        try {
+            analytics.setUserProperty(name, value)
+            Log.d(TAG, "User property set: $name = $value")
+            emitSignal("analytics_property_set", name)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to set user property", e)
+            emitSignal("analytics_error", e.message ?: "property_set_error")
         }
     }
 

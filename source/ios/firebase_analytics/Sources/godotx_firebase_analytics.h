@@ -17,6 +17,8 @@ public:
 
     void initialize();
     void log_event(String event_name, Dictionary params);
+    void log_screen_view(String screen_name, String screen_class);
+    void set_user_property(String name, String value);
 
     GodotxFirebaseAnalytics();
     ~GodotxFirebaseAnalytics();

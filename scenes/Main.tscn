@@ -85,6 +85,7 @@ custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "ANALYTICS"
+script = ExtResource("2")
 
 [node name="CrashlyticsButton" type="Button" parent="VBoxContainer/ContextGroup/Dashboard/List"]
 disabled = true
@@ -92,6 +93,7 @@ custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "CRASHLYTICS"
+script = ExtResource("2")
 
 [node name="MessagingButton" type="Button" parent="VBoxContainer/ContextGroup/Dashboard/List"]
 disabled = true
@@ -99,6 +101,7 @@ custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 32
 text = "MESSAGING"
+script = ExtResource("2")
 
 
 

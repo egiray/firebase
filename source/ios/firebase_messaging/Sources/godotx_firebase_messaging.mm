@@ -40,6 +40,7 @@ void GodotxFirebaseMessaging::_bind_methods() {
     ClassDB::bind_method(D_METHOD("subscribe_to_topic", "topic"), &GodotxFirebaseMessaging::subscribe_to_topic);
     ClassDB::bind_method(D_METHOD("unsubscribe_from_topic", "topic"), &GodotxFirebaseMessaging::unsubscribe_from_topic);
 
+    ADD_SIGNAL(MethodInfo("messaging_initialized", PropertyInfo(Variant::BOOL, "success")));
     ADD_SIGNAL(MethodInfo("messaging_permission_granted"));
     ADD_SIGNAL(MethodInfo("messaging_permission_denied"));
     ADD_SIGNAL(MethodInfo("messaging_token_received", PropertyInfo(Variant::STRING, "token")));
@@ -69,6 +70,8 @@ void GodotxFirebaseMessaging::initialize() {
 
     if (![FIRApp defaultApp]) {
         NSLog(@"[GodotxFirebaseMessaging] Firebase core not ready");
+        emit_signal("messaging_initialized", false);
+        emit_signal("messaging_error", String("firebase_not_initialized"));
         return;
     }
 
@@ -82,6 +85,7 @@ void GodotxFirebaseMessaging::initialize() {
     [[GodotxAPNDelegate shared] activateNotificationCenterDelegate];
 
     NSLog(@"[GodotxFirebaseMessaging] Initialized");
+    emit_signal("messaging_initialized", true);
 }
 
 void GodotxFirebaseMessaging::request_permission() {
