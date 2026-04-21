@@ -20,6 +20,8 @@ void GodotxFirebaseCrashlytics::_bind_methods() {
 
     ADD_SIGNAL(MethodInfo("crashlytics_initialized", PropertyInfo(Variant::BOOL, "success")));
     ADD_SIGNAL(MethodInfo("crashlytics_non_fatal_logged", PropertyInfo(Variant::STRING, "message")));
+    ADD_SIGNAL(MethodInfo("crashlytics_message_logged", PropertyInfo(Variant::STRING, "message")));
+    ADD_SIGNAL(MethodInfo("crashlytics_value_set", PropertyInfo(Variant::STRING, "key")));
     ADD_SIGNAL(MethodInfo("crashlytics_error", PropertyInfo(Variant::STRING, "message")));
 }
 
@@ -57,6 +59,7 @@ void GodotxFirebaseCrashlytics::log_message(String message) {
         NSString* nsMessage = [NSString stringWithUTF8String:message.utf8().get_data()];
         [[FIRCrashlytics crashlytics] log:nsMessage];
         NSLog(@"[GodotxFirebaseCrashlytics] Logged message: %@", nsMessage);
+        emit_signal("crashlytics_message_logged", message);
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseCrashlytics] Failed to log message: %@", exception.reason);
@@ -82,6 +85,7 @@ void GodotxFirebaseCrashlytics::set_custom_value_string(String key, String value
         NSString* nsValue = [NSString stringWithUTF8String:value.utf8().get_data()];
         [[FIRCrashlytics crashlytics] setCustomValue:nsValue forKey:nsKey];
         NSLog(@"[GodotxFirebaseCrashlytics] Set custom value: %@ = %@", nsKey, nsValue);
+        emit_signal("crashlytics_value_set", key);
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseCrashlytics] Failed to set custom value: %@", exception.reason);
@@ -94,6 +98,7 @@ void GodotxFirebaseCrashlytics::set_custom_value_int(String key, int64_t value) 
         NSString* nsKey = [NSString stringWithUTF8String:key.utf8().get_data()];
         [[FIRCrashlytics crashlytics] setCustomValue:@(value) forKey:nsKey];
         NSLog(@"[GodotxFirebaseCrashlytics] Set custom value: %@ = %lld", nsKey, value);
+        emit_signal("crashlytics_value_set", key);
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseCrashlytics] Failed to set custom value: %@", exception.reason);
@@ -106,6 +111,7 @@ void GodotxFirebaseCrashlytics::set_custom_value_bool(String key, bool value) {
         NSString* nsKey = [NSString stringWithUTF8String:key.utf8().get_data()];
         [[FIRCrashlytics crashlytics] setCustomValue:@(value) forKey:nsKey];
         NSLog(@"[GodotxFirebaseCrashlytics] Set custom value: %@ = %d", nsKey, value);
+        emit_signal("crashlytics_value_set", key);
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseCrashlytics] Failed to set custom value: %@", exception.reason);
@@ -118,6 +124,7 @@ void GodotxFirebaseCrashlytics::set_custom_value_float(String key, double value)
         NSString* nsKey = [NSString stringWithUTF8String:key.utf8().get_data()];
         [[FIRCrashlytics crashlytics] setCustomValue:@(value) forKey:nsKey];
         NSLog(@"[GodotxFirebaseCrashlytics] Set custom value: %@ = %f", nsKey, value);
+        emit_signal("crashlytics_value_set", key);
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseCrashlytics] Failed to set custom value: %@", exception.reason);

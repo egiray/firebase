@@ -48,6 +48,9 @@ func _ready() -> void:
 	initialize_firebase_plugins()
 
 func _apply_safe_area() -> void:
+	var os_name = OS.get_name()
+	if os_name != "iOS" and os_name != "Android":
+		return
 	var safe_area = DisplayServer.get_display_safe_area()
 	var window_size = DisplayServer.window_get_size()
 	if safe_area.size != Vector2i.ZERO and safe_area.size != window_size:
@@ -104,6 +107,8 @@ func initialize_firebase_plugins() -> void:
 		messaging.messaging_permission_granted.connect(_on_messaging_permission_granted)
 		messaging.messaging_permission_denied.connect(_on_messaging_permission_denied)
 		messaging.messaging_token_received.connect(_on_messaging_token_received)
+		if OS.get_name() == "iOS":
+			messaging.messaging_apn_token_received.connect(_on_messaging_apn_token_received)
 		messaging.messaging_message_received.connect(_on_messaging_message_received)
 		messaging.messaging_topic_subscribed.connect(_on_messaging_topic_subscribed)
 		messaging.messaging_topic_unsubscribed.connect(_on_messaging_topic_unsubscribed)
@@ -194,9 +199,11 @@ func _on_initialize_pressed() -> void:
 		return
 	log_message("\n[Core] Initializing Firebase...")
 	flash_status(INIT_PATH, TestButton.Status.PENDING)
+	init_btn.disabled = true
 	core.initialize()
 
 func _on_core_initialized(success: bool) -> void:
+	init_btn.disabled = false
 	if not success:
 		log_message("[Core] ✗ Firebase initialization failed")
 		flash_status(INIT_PATH, TestButton.Status.FAILURE)
@@ -210,38 +217,29 @@ func _on_core_initialized(success: bool) -> void:
 func _start_module_init_cascade() -> void:
 	if analytics:
 		log_message("[Analytics] Initializing...")
-		flash_status(ANALYTICS_PATH, TestButton.Status.PENDING)
 		analytics.initialize()
 	if crashlytics:
 		log_message("[Crashlytics] Initializing...")
-		flash_status(CRASHLYTICS_PATH, TestButton.Status.PENDING)
 		crashlytics.initialize()
 	if messaging:
 		log_message("[Messaging] Initializing...")
-		flash_status(MESSAGING_PATH, TestButton.Status.PENDING)
 		messaging.initialize()
 
 func _on_module_init_done(success: bool, module_name: String) -> void:
-	var path := ""
 	var module_btn: Button = null
 	match module_name:
 		"Analytics":
-			path = ANALYTICS_PATH
 			module_btn = analytics_btn
 		"Crashlytics":
-			path = CRASHLYTICS_PATH
 			module_btn = crashlytics_btn
 		"Messaging":
-			path = MESSAGING_PATH
 			module_btn = messaging_btn
 
 	if success:
 		log_message("[%s] ✓ Initialized" % module_name)
-		flash_status(path, TestButton.Status.SUCCESS)
 		if module_btn: module_btn.disabled = false
 	else:
 		log_message("[%s] ✗ Initialization failed" % module_name)
-		flash_status(path, TestButton.Status.FAILURE)
 		if module_btn: module_btn.disabled = true
 
 # ============== ANALYTICS ==============
@@ -312,8 +310,8 @@ func _on_subscribe_topic_pressed() -> void:
 		return
 	log_message("\n[Messaging] Subscribing to: test_topic")
 	flash_status(btn_path, TestButton.Status.PENDING)
-	messaging.subscribe_to_topic("test_topic")
 	_pending_call["Messaging"] = btn_path
+	messaging.subscribe_to_topic("test_topic")
 
 func _on_unsubscribe_topic_pressed() -> void:
 	var btn_path = _module_btn_path("Messaging", "UnsubscribeButton")
@@ -323,8 +321,8 @@ func _on_unsubscribe_topic_pressed() -> void:
 		return
 	log_message("\n[Messaging] Unsubscribing from: test_topic")
 	flash_status(btn_path, TestButton.Status.PENDING)
-	messaging.unsubscribe_from_topic("test_topic")
 	_pending_call["Messaging"] = btn_path
+	messaging.unsubscribe_from_topic("test_topic")
 
 func _on_messaging_permission_granted() -> void:
 	log_message("[Messaging] ✓ Permission granted")
@@ -332,7 +330,10 @@ func _on_messaging_permission_granted() -> void:
 
 func _on_messaging_permission_denied() -> void:
 	log_message("[Messaging] ✗ Permission denied")
-	_clear_pending("Messaging")
+	var path: String = _pending_call.get("Messaging", "")
+	if path != "":
+		flash_status(path, TestButton.Status.FAILURE)
+		_pending_call["Messaging"] = ""
 
 func _on_messaging_topic_subscribed(topic: String) -> void:
 	log_message("[Messaging] ✓ Subscribed to: " + topic)
@@ -344,6 +345,9 @@ func _on_messaging_topic_unsubscribed(topic: String) -> void:
 
 func _on_messaging_token_received(token: String) -> void:
 	log_message("[Messaging] Token: " + token)
+
+func _on_messaging_apn_token_received(token: String) -> void:
+	log_message("[Messaging] APNs Token: " + token)
 
 func _on_messaging_message_received(title: String, body: String) -> void:
 	log_message("[Messaging] Message received: " + title + " — " + body)
