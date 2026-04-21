@@ -7,6 +7,7 @@ var core: Object = null
 var analytics: Object = null
 var crashlytics: Object = null
 var messaging: Object = null
+var remote_config: Object = null
 
 # Navigation Elements
 @onready var back_button: Button = $VBoxContainer/HeaderGroup/MarginContainer/HBoxContainer/BackButton
@@ -21,6 +22,7 @@ var messaging: Object = null
 @onready var analytics_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/AnalyticsButton
 @onready var crashlytics_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/CrashlyticsButton
 @onready var messaging_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/MessagingButton
+@onready var remote_config_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/RemoteConfigButton
 
 # Log Elements
 @onready var log_output: TextEdit = $VBoxContainer/LogGroup/MarginContainer/VBoxContainer/LogOutput
@@ -30,6 +32,7 @@ const INIT_PATH := "VBoxContainer/ContextGroup/Dashboard/List/InitializeButton"
 const ANALYTICS_PATH := "VBoxContainer/ContextGroup/Dashboard/List/AnalyticsButton"
 const CRASHLYTICS_PATH := "VBoxContainer/ContextGroup/Dashboard/List/CrashlyticsButton"
 const MESSAGING_PATH := "VBoxContainer/ContextGroup/Dashboard/List/MessagingButton"
+const REMOTE_CONFIG_PATH := "VBoxContainer/ContextGroup/Dashboard/List/RemoteConfigButton"
 
 # Tracks the module-view button currently awaiting an async signal, per module.
 # The harness only permits one in-flight call per module at a time.
@@ -37,6 +40,7 @@ var _pending_call: Dictionary = {
 	"Analytics": "",
 	"Crashlytics": "",
 	"Messaging": "",
+	"RemoteConfig": "",
 }
 
 func _ready() -> void:
@@ -116,6 +120,17 @@ func initialize_firebase_plugins() -> void:
 		log_message("✓ Firebase Messaging plugin found")
 	else:
 		log_message("✗ Firebase Messaging plugin not found")
+	
+	# Remote Config
+	if Engine.has_singleton("GodotxFirebaseRemoteConfig"):
+		remote_config = Engine.get_singleton("GodotxFirebaseRemoteConfig")
+		remote_config.remote_config_initialized.connect(_on_module_init_done.bind("RemoteConfig"))
+		remote_config.fetch_completed.connect(_on_rc_fetch_completed)
+		remote_config.config_updated.connect(_on_config_updated)
+		remote_config.remote_config_error.connect(_on_module_error.bind("RemoteConfig"))
+		log_message("✓ Firebase Remote Config plugin found")
+	else:
+		log_message("✗ Firebase Remote Config plugin not found")
 
 # ============== NAVIGATION ==============
 
@@ -168,9 +183,13 @@ func enable_service_buttons(enabled: bool) -> void:
 	analytics_btn.disabled = !enabled
 	crashlytics_btn.disabled = !enabled
 	messaging_btn.disabled = !enabled
+	remote_config_btn.disabled = !enabled
 
 func _module_btn_path(module_name: String, btn_name: String) -> String:
-	return "VBoxContainer/ContextGroup/ModuleContainer/" + module_name + "View/" + btn_name
+	var base_path = "VBoxContainer/ContextGroup/ModuleContainer/" + module_name.replace(" ", "") + "View/"
+	if module_name == "Remote Config":
+		return base_path + "List/" + btn_name
+	return base_path + btn_name
 
 func _connect_module_buttons(module_name: String, instance: Node) -> void:
 	if module_name == "Analytics":
@@ -185,6 +204,18 @@ func _connect_module_buttons(module_name: String, instance: Node) -> void:
 		_connect_btn(instance, "FatalButton", _on_crash_pressed)
 		_connect_btn(instance, "NonFatalButton", _on_non_fatal_pressed)
 		_connect_btn(instance, "CustomValueButton", _on_set_custom_value_pressed)
+	elif module_name == "Remote Config":
+		# Note: Buttons are inside the 'List' child of the ScrollContainer
+		var list = instance.get_node("List")
+		_connect_btn(list, "FetchButton", _on_rc_fetch_pressed)
+		_connect_btn(list, "GetStringButton", _on_rc_get_string_pressed)
+		_connect_btn(list, "GetIntButton", _on_rc_get_int_pressed)
+		_connect_btn(list, "GetFloatButton", _on_rc_get_float_pressed)
+		_connect_btn(list, "GetBoolButton", _on_rc_get_bool_pressed)
+		_connect_btn(list, "GetDictButton", _on_rc_get_dict_pressed)
+		_connect_btn(list, "SetDefaultsButton", _on_rc_set_defaults_pressed)
+		_connect_btn(list, "SetIntervalButton", _on_rc_set_interval_pressed)
+		_connect_btn(list, "ListenerButton", _on_rc_listener_toggle_pressed)
 
 func _connect_btn(instance: Node, btn_name: String, method: Callable) -> void:
 	var btn = instance.get_node_or_null(btn_name)
@@ -224,6 +255,9 @@ func _start_module_init_cascade() -> void:
 	if messaging:
 		log_message("[Messaging] Initializing...")
 		messaging.initialize()
+	if remote_config:
+		log_message("[Remote Config] Initializing...")
+		remote_config.initialize()
 
 func _on_module_init_done(success: bool, module_name: String) -> void:
 	var module_btn: Button = null
@@ -234,6 +268,8 @@ func _on_module_init_done(success: bool, module_name: String) -> void:
 			module_btn = crashlytics_btn
 		"Messaging":
 			module_btn = messaging_btn
+		"RemoteConfig":
+			module_btn = remote_config_btn
 
 	if success:
 		log_message("[%s] ✓ Initialized" % module_name)
@@ -429,3 +465,121 @@ func _on_copy_log_pressed() -> void:
 	if log_output:
 		DisplayServer.clipboard_set(log_output.text)
 		log_message("[System] Log copied to clipboard")
+
+
+# ============== REMOTE CONFIG ==============
+
+func _on_rc_fetch_pressed() -> void:
+	var btn_path = _module_btn_path("Remote Config", "FetchButton")
+	if not remote_config:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Remote Config] Fetching and Activating...")
+	flash_status(btn_path, TestButton.Status.PENDING)
+	_pending_call["RemoteConfig"] = btn_path
+	remote_config.fetch_and_activate()
+
+func _on_rc_fetch_completed(status: int) -> void:
+	var status_str = "UNKNOWN"
+	match status:
+		0: status_str = "SUCCESS"
+		1: status_str = "CACHED"
+		2: status_str = "FAILURE"
+		3: status_str = "THROTTLED"
+	log_message("[Remote Config] ✓ Fetch result: " + status_str)
+	if status == 0 or status == 1:
+		_clear_pending("RemoteConfig")
+	else:
+		var path: String = _pending_call.get("RemoteConfig", "")
+		if path != "":
+			flash_status(path, TestButton.Status.FAILURE)
+			_pending_call["RemoteConfig"] = ""
+
+func _on_rc_get_string_pressed() -> void:
+	var path = _module_btn_path("Remote Config", "GetStringButton")
+	if remote_config:
+		var val = remote_config.get_string("welcome_message", "DEFAULT_VALUE")
+		log_message("[Remote Config] 'welcome_message' = " + str(val))
+		flash_status(path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(path, TestButton.Status.FAILURE)
+
+func _on_rc_get_int_pressed() -> void:
+	var path = _module_btn_path("Remote Config", "GetIntButton")
+	if remote_config:
+		var val = remote_config.get_int("min_version", -1)
+		log_message("[Remote Config] 'min_version' = " + str(val))
+		flash_status(path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(path, TestButton.Status.FAILURE)
+
+func _on_rc_get_float_pressed() -> void:
+	var path = _module_btn_path("Remote Config", "GetFloatButton")
+	if remote_config:
+		var val = remote_config.get_float("drop_rate", 0.0)
+		log_message("[Remote Config] 'drop_rate' = " + str(val))
+		flash_status(path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(path, TestButton.Status.FAILURE)
+
+func _on_rc_get_bool_pressed() -> void:
+	var path = _module_btn_path("Remote Config", "GetBoolButton")
+	if remote_config:
+		var val = remote_config.get_bool("feature_enabled", false)
+		log_message("[Remote Config] 'feature_enabled' = " + str(val))
+		flash_status(path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(path, TestButton.Status.FAILURE)
+
+func _on_rc_get_dict_pressed() -> void:
+	var path = _module_btn_path("Remote Config", "GetDictButton")
+	if remote_config:
+		var val = remote_config.get_dictionary("game_config")
+		log_message("[Remote Config] 'game_config' = " + str(val))
+		flash_status(path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(path, TestButton.Status.FAILURE)
+
+func _on_rc_set_defaults_pressed() -> void:
+	var path = _module_btn_path("Remote Config", "SetDefaultsButton")
+	if remote_config:
+		var defaults = {
+			"welcome_message": "Hello from Defaults!",
+			"min_version": 10,
+			"drop_rate": 0.05,
+			"feature_enabled": true
+		}
+		remote_config.set_defaults(defaults)
+		log_message("[Remote Config] Local defaults set")
+		flash_status(path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(path, TestButton.Status.FAILURE)
+
+func _on_rc_set_interval_pressed() -> void:
+	var path = _module_btn_path("Remote Config", "SetIntervalButton")
+	if remote_config:
+		remote_config.set_minimum_fetch_interval(0.0)
+		log_message("[Remote Config] Fetch interval set to 0s (Dev Mode)")
+		flash_status(path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(path, TestButton.Status.FAILURE)
+
+func _on_rc_listener_toggle_pressed() -> void:
+	var path = _module_btn_path("Remote Config", "ListenerButton")
+	if remote_config:
+		log_message("[Remote Config] Real-time updates toggle requested (Native log only)")
+		flash_status(path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Remote Config] Plugin not available")
+		flash_status(path, TestButton.Status.FAILURE)
+
+func _on_config_updated(keys: Array) -> void:
+	log_message("[Remote Config] 📡 Config updated: " + str(keys))

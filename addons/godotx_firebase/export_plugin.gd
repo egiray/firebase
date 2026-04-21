@@ -54,6 +54,51 @@ class AppleExportPlugin extends EditorExportPlugin:
 			"default_value": "res://GoogleService-Info.plist"
 		})
 
+		# Enable Core
+		options.append({
+			"option": {
+				"name": "firebase/enable_core",
+				"type": TYPE_BOOL
+			},
+			"default_value": true
+		})
+
+		# Enable Analytics
+		options.append({
+			"option": {
+				"name": "firebase/enable_analytics",
+				"type": TYPE_BOOL
+			},
+			"default_value": false
+		})
+
+		# Enable Crashlytics
+		options.append({
+			"option": {
+				"name": "firebase/enable_crashlytics",
+				"type": TYPE_BOOL
+			},
+			"default_value": false
+		})
+
+		# Enable Messaging
+		options.append({
+			"option": {
+				"name": "firebase/enable_messaging",
+				"type": TYPE_BOOL
+			},
+			"default_value": false
+		})
+
+		# Enable Remote Config
+		options.append({
+			"option": {
+				"name": "firebase/enable_remote_config",
+				"type": TYPE_BOOL
+			},
+			"default_value": false
+		})
+
 		return options
 
 
