@@ -219,15 +219,10 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
     fun subscribe_to_topic(topic: String) {
         try {
             FirebaseMessaging.getInstance().subscribeToTopic(topic)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Log.d(TAG, "Subscribed to topic: $topic")
-                        emitSignal("messaging_topic_subscribed", topic)
-                    } else {
-                        Log.e(TAG, "Failed to subscribe to topic", task.exception)
-                        emitSignal("messaging_error", task.exception?.message ?: "subscribe_failed")
-                    }
-                }
+                .addOnSuccessListener { Log.d(TAG, "Subscribed to topic (server confirmed): $topic") }
+                .addOnFailureListener { e -> Log.e(TAG, "Subscribe server sync failed for $topic", e) }
+            Log.d(TAG, "Subscribe to topic queued: $topic")
+            emitSignal("messaging_topic_subscribed", topic)
         } catch (e: Exception) {
             Log.e(TAG, "Error subscribing to topic", e)
             emitSignal("messaging_error", e.message ?: "subscribe_error")
@@ -238,15 +233,10 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
     fun unsubscribe_from_topic(topic: String) {
         try {
             FirebaseMessaging.getInstance().unsubscribeFromTopic(topic)
-                .addOnCompleteListener { task ->
-                    if (task.isSuccessful) {
-                        Log.d(TAG, "Unsubscribed from topic: $topic")
-                        emitSignal("messaging_topic_unsubscribed", topic)
-                    } else {
-                        Log.e(TAG, "Failed to unsubscribe from topic", task.exception)
-                        emitSignal("messaging_error", task.exception?.message ?: "unsubscribe_failed")
-                    }
-                }
+                .addOnSuccessListener { Log.d(TAG, "Unsubscribed from topic (server confirmed): $topic") }
+                .addOnFailureListener { e -> Log.e(TAG, "Unsubscribe server sync failed for $topic", e) }
+            Log.d(TAG, "Unsubscribe from topic queued: $topic")
+            emitSignal("messaging_topic_unsubscribed", topic)
         } catch (e: Exception) {
             Log.e(TAG, "Error unsubscribing from topic", e)
             emitSignal("messaging_error", e.message ?: "unsubscribe_error")

@@ -46,6 +46,8 @@ void GodotxFirebaseMessaging::_bind_methods() {
     ADD_SIGNAL(MethodInfo("messaging_token_received", PropertyInfo(Variant::STRING, "token")));
     ADD_SIGNAL(MethodInfo("messaging_apn_token_received", PropertyInfo(Variant::STRING, "token")));
     ADD_SIGNAL(MethodInfo("messaging_message_received", PropertyInfo(Variant::STRING, "title"), PropertyInfo(Variant::STRING, "body")));
+    ADD_SIGNAL(MethodInfo("messaging_topic_subscribed", PropertyInfo(Variant::STRING, "topic")));
+    ADD_SIGNAL(MethodInfo("messaging_topic_unsubscribed", PropertyInfo(Variant::STRING, "topic")));
     ADD_SIGNAL(MethodInfo("messaging_error", PropertyInfo(Variant::STRING, "message")));
 }
 
@@ -259,6 +261,11 @@ void GodotxFirebaseMessaging::subscribe_to_topic(String topic) {
             });
         } else {
             NSLog(@"[GodotxFirebaseMessaging] Successfully subscribed to topic: %@", nsTopic);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (GodotxFirebaseMessaging::instance) {
+                    GodotxFirebaseMessaging::instance->emit_signal("messaging_topic_subscribed", String::utf8([nsTopic UTF8String]));
+                }
+            });
         }
     }];
 }
@@ -279,6 +286,11 @@ void GodotxFirebaseMessaging::unsubscribe_from_topic(String topic) {
             });
         } else {
             NSLog(@"[GodotxFirebaseMessaging] Successfully unsubscribed from topic: %@", nsTopic);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (GodotxFirebaseMessaging::instance) {
+                    GodotxFirebaseMessaging::instance->emit_signal("messaging_topic_unsubscribed", String::utf8([nsTopic UTF8String]));
+                }
+            });
         }
     }];
 }
