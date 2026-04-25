@@ -167,10 +167,10 @@ func _on_set_custom_value_pressed() -> void:
 		crashlytics.set_custom_value_float("demo_float", randf() * 100.0)
 
 		# auto-dispatch helper
-		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_str", "auto_" + str(randi() % 1000))
-		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_int", randi() % 100)
-		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_bool", randi() % 2 == 0)
-		FirebaseCrashlyticsHelper.set_custom_value("demo_auto_float", randf() * 100.0)
+		FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "demo_auto_str", "auto_" + str(randi() % 1000))
+		FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "demo_auto_int", randi() % 100)
+		FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "demo_auto_bool", randi() % 2 == 0)
+		FirebaseCrashlyticsHelper.set_custom_value(crashlytics, "demo_auto_float", randf() * 100.0)
 
 		log_message("[Crashlytics] ✓ Custom values set")
 	else:
@@ -256,5 +256,10 @@ func _on_error(message: String, module: String) -> void:
 func _on_clear_log_pressed() -> void:
 	if log_output:
 		log_output.text = ""
-		log_message("=== Log Cleared ===")
-		update_status("Ready", Color.WHITE)
+	log_message("=== Log Cleared ===")
+	update_status("Ready", Color.WHITE)
+
+func _on_copy_log_pressed() -> void:
+	if log_output:
+		DisplayServer.clipboard_set(log_output.text)
+		update_status("Log Copied", Color.GREEN)
