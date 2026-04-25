@@ -16,23 +16,75 @@ theme_override_font_sizes/font_size = 32
 text = "Analytics Module"
 horizontal_alignment = 1
 
-[node name="LogEventButton" type="Button" parent="."]
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="List" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="LogEventButton" type="Button" parent="ScrollContainer/List"]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "📊 Log Test Event"
 script = ExtResource("1")
 
-[node name="LogScreenButton" type="Button" parent="."]
+[node name="LogScreenButton" type="Button" parent="ScrollContainer/List"]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "📱 Log Screen View"
 script = ExtResource("1")
 
-[node name="UserPropsButton" type="Button" parent="."]
+[node name="UserPropsButton" type="Button" parent="ScrollContainer/List"]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 text = "👤 Set User Property"
 script = ExtResource("1")
+
+[node name="SetUserIdButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🆔 Set User ID"
+script = ExtResource("1")
+
+[node name="SetDefaultParamsButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "⚙️ Set Default Params"
+script = ExtResource("1")
+
+[node name="SetConsentButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🛡️ Set Consent"
+script = ExtResource("1")
+
+[node name="SetCollectionEnabledButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🔄 Toggle Collection"
+script = ExtResource("1")
+
+[node name="ResetDataButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🗑️ Reset Data"
+script = ExtResource("1")
+
+[node name="LogLevelStartButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🎮 Log Level Start"
+script = ExtResource("1")
+

@@ -8,11 +8,6 @@
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
     NSLog(@"[GodotxFirebaseMessaging] didRegisterForRemoteNotificationsWithDeviceToken");
 
-    if (![FIRApp defaultApp]) {
-        NSLog(@"[GodotxFirebaseMessaging] Firebase not configured yet, skipping APNs token");
-        return;
-    }
-
     [FIRMessaging messaging].APNSToken = deviceToken;
 
     const unsigned char *data = (const unsigned char *)deviceToken.bytes;

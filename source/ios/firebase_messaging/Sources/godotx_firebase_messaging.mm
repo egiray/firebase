@@ -39,12 +39,16 @@ void GodotxFirebaseMessaging::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_apns_token"), &GodotxFirebaseMessaging::get_apns_token);
     ClassDB::bind_method(D_METHOD("subscribe_to_topic", "topic"), &GodotxFirebaseMessaging::subscribe_to_topic);
     ClassDB::bind_method(D_METHOD("unsubscribe_from_topic", "topic"), &GodotxFirebaseMessaging::unsubscribe_from_topic);
+    ClassDB::bind_method(D_METHOD("get_last_notification"), &GodotxFirebaseMessaging::get_last_notification);
 
+    ADD_SIGNAL(MethodInfo("messaging_initialized", PropertyInfo(Variant::BOOL, "success")));
     ADD_SIGNAL(MethodInfo("messaging_permission_granted"));
     ADD_SIGNAL(MethodInfo("messaging_permission_denied"));
     ADD_SIGNAL(MethodInfo("messaging_token_received", PropertyInfo(Variant::STRING, "token")));
     ADD_SIGNAL(MethodInfo("messaging_apn_token_received", PropertyInfo(Variant::STRING, "token")));
-    ADD_SIGNAL(MethodInfo("messaging_message_received", PropertyInfo(Variant::STRING, "title"), PropertyInfo(Variant::STRING, "body")));
+    ADD_SIGNAL(MethodInfo("messaging_message_received", PropertyInfo(Variant::STRING, "title"), PropertyInfo(Variant::STRING, "body"), PropertyInfo(Variant::DICTIONARY, "data")));
+    ADD_SIGNAL(MethodInfo("messaging_topic_subscribed", PropertyInfo(Variant::STRING, "topic")));
+    ADD_SIGNAL(MethodInfo("messaging_topic_unsubscribed", PropertyInfo(Variant::STRING, "topic")));
     ADD_SIGNAL(MethodInfo("messaging_error", PropertyInfo(Variant::STRING, "message")));
 }
 
@@ -69,6 +73,8 @@ void GodotxFirebaseMessaging::initialize() {
 
     if (![FIRApp defaultApp]) {
         NSLog(@"[GodotxFirebaseMessaging] Firebase core not ready");
+        emit_signal("messaging_initialized", false);
+        emit_signal("messaging_error", String("firebase_not_initialized"));
         return;
     }
 
@@ -82,6 +88,7 @@ void GodotxFirebaseMessaging::initialize() {
     [[GodotxAPNDelegate shared] activateNotificationCenterDelegate];
 
     NSLog(@"[GodotxFirebaseMessaging] Initialized");
+    emit_signal("messaging_initialized", true);
 }
 
 void GodotxFirebaseMessaging::request_permission() {
@@ -255,6 +262,11 @@ void GodotxFirebaseMessaging::subscribe_to_topic(String topic) {
             });
         } else {
             NSLog(@"[GodotxFirebaseMessaging] Successfully subscribed to topic: %@", nsTopic);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (GodotxFirebaseMessaging::instance) {
+                    GodotxFirebaseMessaging::instance->emit_signal("messaging_topic_subscribed", String::utf8([nsTopic UTF8String]));
+                }
+            });
         }
     }];
 }
@@ -275,6 +287,54 @@ void GodotxFirebaseMessaging::unsubscribe_from_topic(String topic) {
             });
         } else {
             NSLog(@"[GodotxFirebaseMessaging] Successfully unsubscribed from topic: %@", nsTopic);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (GodotxFirebaseMessaging::instance) {
+                    GodotxFirebaseMessaging::instance->emit_signal("messaging_topic_unsubscribed", String::utf8([nsTopic UTF8String]));
+                }
+            });
         }
     }];
+}
+
+Dictionary GodotxFirebaseMessaging::get_last_notification() {
+    NSDictionary *userInfo = [GodotxAPNDelegate shared].lastNotificationInfo;
+    if (!userInfo) {
+        return Dictionary();
+    }
+
+    // Extract title and body from aps.alert
+    NSString *title = @"";
+    NSString *body = @"";
+    NSDictionary *aps = userInfo[@"aps"];
+    if ([aps isKindOfClass:[NSDictionary class]]) {
+        id alert = aps[@"alert"];
+        if ([alert isKindOfClass:[NSDictionary class]]) {
+            title = alert[@"title"] ?: @"";
+            body = alert[@"body"] ?: @"";
+        } else if ([alert isKindOfClass:[NSString class]]) {
+            body = alert;
+        }
+    }
+
+    // Collect custom data fields (exclude internal APNs/FCM keys)
+    Dictionary dataDict;
+    NSSet *reservedKeys = [NSSet setWithArray:@[
+        @"aps", @"gcm.message_id", @"google.c.a.e", @"google.c.fid",
+        @"google.c.sender.id", @"gcm.notification.sound"
+    ]];
+    for (NSString *key in userInfo) {
+        if ([reservedKeys containsObject:key]) continue;
+        id val = userInfo[key];
+        if ([val isKindOfClass:[NSString class]]) {
+            dataDict[String::utf8([key UTF8String])] = String::utf8([(NSString*)val UTF8String]);
+        } else if ([val isKindOfClass:[NSNumber class]]) {
+            dataDict[String::utf8([key UTF8String])] = String::utf8([[val stringValue] UTF8String]);
+        }
+    }
+
+    Dictionary result;
+    result["title"] = String::utf8([title UTF8String]);
+    result["body"] = String::utf8([body UTF8String]);
+    result["data"] = dataDict;
+    return result;
 }

@@ -23,9 +23,18 @@ theme_override_font_sizes/font_size = 28
 text = "🔔 Request Permission"
 script = ExtResource("1")
 
+[node name="GetTokenButton" type="Button" parent="."]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+disabled = true
+theme_override_font_sizes/font_size = 28
+text = "🔑 Get FCM Token"
+script = ExtResource("1")
+
 [node name="SubscribeButton" type="Button" parent="."]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
+disabled = true
 theme_override_font_sizes/font_size = 28
 text = "➕ Subscribe to Topic"
 script = ExtResource("1")
@@ -33,6 +42,15 @@ script = ExtResource("1")
 [node name="UnsubscribeButton" type="Button" parent="."]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
+disabled = true
 theme_override_font_sizes/font_size = 28
 text = "➖ Unsubscribe from Topic"
+script = ExtResource("1")
+
+[node name="GetLastNotificationButton" type="Button" parent="."]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+disabled = true
+theme_override_font_sizes/font_size = 28
+text = "📱 Get Last Notification"
 script = ExtResource("1")
