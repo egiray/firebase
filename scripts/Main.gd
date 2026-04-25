@@ -43,6 +43,10 @@ var _pending_call: Dictionary = {
 	"RemoteConfig": "",
 }
 
+var _fcm_token: String = ""
+var _messaging_permission_granted: bool = false
+var _apns_ready: bool = false
+
 func _ready() -> void:
 	get_viewport().size_changed.connect(_apply_safe_area)
 	_apply_safe_area()
@@ -189,17 +193,29 @@ func _module_btn_path(module_name: String, btn_name: String) -> String:
 	var base_path = "VBoxContainer/ContextGroup/ModuleContainer/" + module_name.replace(" ", "") + "View/"
 	if module_name == "Remote Config":
 		return base_path + "List/" + btn_name
+	elif module_name == "Analytics":
+		return base_path + "ScrollContainer/List/" + btn_name
 	return base_path + btn_name
 
 func _connect_module_buttons(module_name: String, instance: Node) -> void:
 	if module_name == "Analytics":
-		_connect_btn(instance, "LogEventButton", _on_log_event_pressed)
-		_connect_btn(instance, "LogScreenButton", _on_log_screen_pressed)
-		_connect_btn(instance, "UserPropsButton", _on_set_user_property_pressed)
+		var list = instance.get_node("ScrollContainer/List")
+		_connect_btn(list, "LogEventButton", _on_log_event_pressed)
+		_connect_btn(list, "LogScreenButton", _on_log_screen_pressed)
+		_connect_btn(list, "UserPropsButton", _on_set_user_property_pressed)
+		_connect_btn(list, "SetUserIdButton", _on_set_user_id_pressed)
+		_connect_btn(list, "SetDefaultParamsButton", _on_set_default_params_pressed)
+		_connect_btn(list, "SetConsentButton", _on_set_consent_pressed)
+		_connect_btn(list, "SetCollectionEnabledButton", _on_set_collection_enabled_pressed)
+		_connect_btn(list, "ResetDataButton", _on_reset_data_pressed)
+		_connect_btn(list, "LogLevelStartButton", _on_log_level_start_pressed)
 	elif module_name == "Messaging":
+		_connect_btn(instance, "GetTokenButton", _on_get_token_pressed)
 		_connect_btn(instance, "PermissionButton", _on_request_messaging_permission_pressed)
 		_connect_btn(instance, "SubscribeButton", _on_subscribe_topic_pressed)
 		_connect_btn(instance, "UnsubscribeButton", _on_unsubscribe_topic_pressed)
+		_connect_btn(instance, "GetLastNotificationButton", _on_get_last_notification_pressed)
+		_update_messaging_view_state(instance)
 	elif module_name == "Crashlytics":
 		_connect_btn(instance, "FatalButton", _on_crash_pressed)
 		_connect_btn(instance, "NonFatalButton", _on_non_fatal_pressed)
@@ -325,7 +341,79 @@ func _on_analytics_property_set(prop_name: String) -> void:
 	log_message("[Analytics] ✓ Property set: " + prop_name)
 	_clear_pending("Analytics")
 
+func _on_set_user_id_pressed() -> void:
+	var btn_path = _module_btn_path("Analytics", "SetUserIdButton")
+	if not analytics:
+		log_message("[Analytics] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Analytics] Setting User ID: player_123")
+	flash_status(btn_path, TestButton.Status.SUCCESS)
+	analytics.set_user_id("player_123")
+
+func _on_set_default_params_pressed() -> void:
+	var btn_path = _module_btn_path("Analytics", "SetDefaultParamsButton")
+	if not analytics:
+		log_message("[Analytics] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Analytics] Setting default params: app_version=1.0.0")
+	flash_status(btn_path, TestButton.Status.SUCCESS)
+	analytics.set_default_event_parameters({"app_version": "1.0.0"})
+
+func _on_set_consent_pressed() -> void:
+	var btn_path = _module_btn_path("Analytics", "SetConsentButton")
+	if not analytics:
+		log_message("[Analytics] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Analytics] Setting Consent: analytics_storage=false")
+	flash_status(btn_path, TestButton.Status.SUCCESS)
+	analytics.set_consent({"analytics_storage": false})
+
+func _on_set_collection_enabled_pressed() -> void:
+	var btn_path = _module_btn_path("Analytics", "SetCollectionEnabledButton")
+	if not analytics:
+		log_message("[Analytics] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Analytics] Toggling Collection Enabled: false")
+	flash_status(btn_path, TestButton.Status.SUCCESS)
+	analytics.set_collection_enabled(false)
+
+func _on_reset_data_pressed() -> void:
+	var btn_path = _module_btn_path("Analytics", "ResetDataButton")
+	if not analytics:
+		log_message("[Analytics] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Analytics] Resetting Analytics Data")
+	flash_status(btn_path, TestButton.Status.SUCCESS)
+	analytics.reset_analytics_data()
+
+func _on_log_level_start_pressed() -> void:
+	var btn_path = _module_btn_path("Analytics", "LogLevelStartButton")
+	if not analytics:
+		log_message("[Analytics] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Analytics] Logging level_start: level_1")
+	flash_status(btn_path, TestButton.Status.PENDING)
+	_pending_call["Analytics"] = btn_path
+	analytics.log_level_start("level_1")
+
 # ============== MESSAGING ==============
+
+func _on_get_token_pressed() -> void:
+	var btn_path = _module_btn_path("Messaging", "GetTokenButton")
+	if not messaging:
+		log_message("[Messaging] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Messaging] Requesting FCM token...")
+	flash_status(btn_path, TestButton.Status.PENDING)
+	_pending_call["Messaging"] = btn_path
+	messaging.get_token()
 
 func _on_request_messaging_permission_pressed() -> void:
 	var btn_path = _module_btn_path("Messaging", "PermissionButton")
@@ -362,7 +450,12 @@ func _on_unsubscribe_topic_pressed() -> void:
 
 func _on_messaging_permission_granted() -> void:
 	log_message("[Messaging] ✓ Permission granted")
+	_messaging_permission_granted = true
 	_clear_pending("Messaging")
+			
+	var view = module_container.get_node_or_null("MessagingView")
+	if view:
+		_update_messaging_view_state(view)
 
 func _on_messaging_permission_denied() -> void:
 	log_message("[Messaging] ✗ Permission denied")
@@ -380,13 +473,62 @@ func _on_messaging_topic_unsubscribed(topic: String) -> void:
 	_clear_pending("Messaging")
 
 func _on_messaging_token_received(token: String) -> void:
-	log_message("[Messaging] Token: " + token)
+	_fcm_token = token
+	log_message("[Messaging] Token received: " + token)
+	_clear_pending("Messaging")
+	
+	var view = module_container.get_node_or_null("MessagingView")
+	if view:
+		_update_messaging_view_state(view)
 
 func _on_messaging_apn_token_received(token: String) -> void:
-	log_message("[Messaging] APNs Token: " + token)
+	_apns_ready = true
+	log_message("[Messaging] APNs Token received (Ready for FCM)")
+	# If we already have permissions, we can now fetch FCM token
+	if _messaging_permission_granted and messaging:
+		messaging.get_token()
 
-func _on_messaging_message_received(title: String, body: String) -> void:
+func _update_messaging_view_state(view: Node) -> void:
+	var has_token = !_fcm_token.is_empty()
+	var permission_ok = _messaging_permission_granted
+	
+	var perm_btn = view.get_node_or_null("PermissionButton")
+	var token_btn = view.get_node_or_null("GetTokenButton")
+	var sub_btn = view.get_node_or_null("SubscribeButton")
+	var unsub_btn = view.get_node_or_null("UnsubscribeButton")
+	var last_notification_btn = view.get_node_or_null("GetLastNotificationButton")
+	
+	# Step 1: Permission button is always enabled
+	if perm_btn: perm_btn.disabled = false
+
+	# Step 2: Get Token only enabled after permission is granted
+	if token_btn: token_btn.disabled = !permission_ok
+
+	# Step 3: Topic operations and Get Last Notification only enabled after both permission and token are obtained
+	if sub_btn: sub_btn.disabled = !(permission_ok and has_token)
+	if unsub_btn: unsub_btn.disabled = !(permission_ok and has_token)
+	if last_notification_btn: last_notification_btn.disabled = !(permission_ok and has_token)
+
+func _on_messaging_message_received(title: String, body: String, data: Dictionary = {}) -> void:
 	log_message("[Messaging] Message received: " + title + " — " + body)
+	if not data.is_empty():
+		log_message("[Messaging] Data payload: " + str(data))
+
+func _on_get_last_notification_pressed() -> void:
+	var btn_path = _module_btn_path("Messaging", "GetLastNotificationButton")
+	if not messaging:
+		log_message("[Messaging] Plugin not available")
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+	log_message("\n[Messaging] Getting last notification...")
+	flash_status(btn_path, TestButton.Status.PENDING)
+	var data = messaging.get_last_notification()
+	if typeof(data) == TYPE_DICTIONARY and not data.is_empty():
+		log_message("[Messaging] ✓ Last notification data: " + str(data))
+		flash_status(btn_path, TestButton.Status.SUCCESS)
+	else:
+		log_message("[Messaging] ✗ No previous notification data found")
+		flash_status(btn_path, TestButton.Status.FAILURE)
 
 # ============== CRASHLYTICS ==============
 
