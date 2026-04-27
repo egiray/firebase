@@ -25,7 +25,7 @@ public:
     Dictionary get_dictionary(const String &key);
     void set_defaults(const Dictionary &defaults);
     void set_minimum_fetch_interval(float seconds);
-    bool setup_realtime_updates();
+    void setup_realtime_updates();
     void remove_config_update_listener();
 
     GodotxFirebaseRemoteConfig();

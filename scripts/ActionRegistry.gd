@@ -136,10 +136,8 @@ static func get_actions() -> Dictionary:
 			"ListenerButton": {
 				"method": "setup_realtime_updates",
 				"args": [],
-				"mode": "getter",
-				"desc": "Enabling Real-time updates listener",
-				"validator": func(res: Variant): return res == true or res == 1,
-				"failure_log": "Failed to setup listener (method missing or returned false)"
+				"signal": "remote_config_listener_registered",
+				"desc": "Enabling Real-time updates listener"
 			}
 		},
 		"Messaging": {

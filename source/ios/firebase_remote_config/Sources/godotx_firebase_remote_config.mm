@@ -105,6 +105,7 @@ void GodotxFirebaseRemoteConfig::_bind_methods() {
     ADD_SIGNAL(MethodInfo("remote_config_updated", PropertyInfo(Variant::ARRAY, "updated_keys")));
     ADD_SIGNAL(MethodInfo("remote_config_defaults_set"));
     ADD_SIGNAL(MethodInfo("remote_config_settings_updated"));
+    ADD_SIGNAL(MethodInfo("remote_config_listener_registered"));
 }
 
 // ---------------------------------------------------------------------------
@@ -235,9 +236,12 @@ void GodotxFirebaseRemoteConfig::set_minimum_fetch_interval(float seconds) {
 // Real-time listener
 // ---------------------------------------------------------------------------
 
-bool GodotxFirebaseRemoteConfig::setup_realtime_updates() {
-    FIREBASE_CHECK_INITIALIZED_V(false);
-    if (_listenerRegistration) return true;
+void GodotxFirebaseRemoteConfig::setup_realtime_updates() {
+    FIREBASE_CHECK_INITIALIZED();
+    if (_listenerRegistration) {
+        emit_signal("remote_config_listener_registered");
+        return;
+    }
     FIRRemoteConfig *rc = [FIRRemoteConfig remoteConfig];
     _listenerRegistration = [rc addOnConfigUpdateListener:^(FIRRemoteConfigUpdate *update,
                                                              NSError *error) {
@@ -254,7 +258,7 @@ bool GodotxFirebaseRemoteConfig::setup_realtime_updates() {
             });
         }];
     }];
-    return true;
+    emit_signal("remote_config_listener_registered");
 }
 
 void GodotxFirebaseRemoteConfig::remove_config_update_listener() {

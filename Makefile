@@ -259,7 +259,7 @@ build-apple: setup-apple
 			firebase_remote_config) \
 				echo "    - Copying frameworks from FirebaseRemoteConfig..." \
 				&& cp -a $(FIREBASE_SDK_DIR)/FirebaseRemoteConfig/*.xcframework $(IOS_PLUGINS_DIR)/$$module/ ;; \
-		esac); \
+		esac) || exit 1; \
 		echo "  ✓ $$module build complete (Debug + Release)"; \
 		echo ""; \
 	done

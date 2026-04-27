@@ -1,4 +1,5 @@
 #import "godotx_apn_delegate.h"
+#import "godotx_firebase_messaging_internal.h"
 #include "godotx_firebase_messaging.h"
 
 @implementation GodotxAPNDelegate
@@ -40,7 +41,7 @@
 
     NSString *title = notification.request.content.title ?: @"";
     NSString *body = notification.request.content.body ?: @"";
-    Dictionary data = GodotxFirebaseMessaging::user_info_to_dictionary(userInfo);
+    Dictionary data = user_info_to_dictionary(userInfo);
 
     dispatch_async(dispatch_get_main_queue(), ^{
         if (GodotxFirebaseMessaging::instance) {
@@ -51,11 +52,7 @@
         }
     });
 
-    if (@available(iOS 14.0, *)) {
-        completionHandler(UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionBadge);
-    } else {
-        completionHandler(UNNotificationPresentationOptionAlert | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionBadge);
-    }
+    completionHandler(UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionBadge);
 }
 
 - (void)userNotificationCenter:(UNUserNotificationCenter *)center
@@ -68,7 +65,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 
     NSString *title = response.notification.request.content.title ?: @"";
     NSString *body = response.notification.request.content.body ?: @"";
-    Dictionary data = GodotxFirebaseMessaging::user_info_to_dictionary(userInfo);
+    Dictionary data = user_info_to_dictionary(userInfo);
 
     dispatch_async(dispatch_get_main_queue(), ^{
         if (GodotxFirebaseMessaging::instance) {

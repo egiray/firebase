@@ -1,4 +1,5 @@
 #import "godotx_firebase_messaging.h"
+#import "godotx_firebase_messaging_internal.h"
 #import "godotx_apn_delegate.h"
 #include "core/object/class_db.h"
 
@@ -296,34 +297,7 @@ void GodotxFirebaseMessaging::unsubscribe_from_topic(String topic) {
     }];
 }
 
-Dictionary GodotxFirebaseMessaging::get_last_notification() {
-    NSDictionary *userInfo = [GodotxAPNDelegate shared].lastNotificationInfo;
-    if (!userInfo) {
-        return Dictionary();
-    }
-
-    // Extract title and body from aps.alert
-    NSString *title = @"";
-    NSString *body = @"";
-    NSDictionary *aps = userInfo[@"aps"];
-    if ([aps isKindOfClass:[NSDictionary class]]) {
-        id alert = aps[@"alert"];
-        if ([alert isKindOfClass:[NSDictionary class]]) {
-            title = alert[@"title"] ?: @"";
-            body = alert[@"body"] ?: @"";
-        } else if ([alert isKindOfClass:[NSString class]]) {
-            body = alert;
-        }
-    }
-
-    Dictionary result;
-    result["title"] = String::utf8([title UTF8String]);
-    result["body"] = String::utf8([body UTF8String]);
-    result["data"] = user_info_to_dictionary(userInfo);
-    return result;
-}
-
-Variant GodotxFirebaseMessaging::ns_object_to_variant(id val) {
+Variant ns_object_to_variant(id val) {
     if ([val isKindOfClass:[NSString class]]) {
         return String::utf8([(NSString *)val UTF8String]);
     } else if ([val isKindOfClass:[NSNumber class]]) {
@@ -351,7 +325,7 @@ Variant GodotxFirebaseMessaging::ns_object_to_variant(id val) {
     return Variant();
 }
 
-Dictionary GodotxFirebaseMessaging::user_info_to_dictionary(NSDictionary *userInfo) {
+Dictionary user_info_to_dictionary(NSDictionary *userInfo) {
     Dictionary dataDict;
     if (!userInfo) return dataDict;
 
@@ -369,3 +343,32 @@ Dictionary GodotxFirebaseMessaging::user_info_to_dictionary(NSDictionary *userIn
     }
     return dataDict;
 }
+
+Dictionary GodotxFirebaseMessaging::get_last_notification() {
+    NSDictionary *userInfo = [GodotxAPNDelegate shared].lastNotificationInfo;
+    if (!userInfo) {
+        return Dictionary();
+    }
+
+    // Extract title and body from aps.alert
+    NSString *title = @"";
+    NSString *body = @"";
+    NSDictionary *aps = userInfo[@"aps"];
+    if ([aps isKindOfClass:[NSDictionary class]]) {
+        id alert = aps[@"alert"];
+        if ([alert isKindOfClass:[NSDictionary class]]) {
+            title = alert[@"title"] ?: @"";
+            body = alert[@"body"] ?: @"";
+        } else if ([alert isKindOfClass:[NSString class]]) {
+            body = alert;
+        }
+    }
+
+    Dictionary result;
+    result["title"] = String::utf8([title UTF8String]);
+    result["body"] = String::utf8([body UTF8String]);
+    result["data"] = user_info_to_dictionary(userInfo);
+    return result;
+}
+
+

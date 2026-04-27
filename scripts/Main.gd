@@ -150,6 +150,7 @@ func initialize_firebase_plugins() -> void:
 		)
 		remote_config.remote_config_defaults_set.connect(func(): _clear_pending("RemoteConfig"))
 		remote_config.remote_config_settings_updated.connect(func(): _clear_pending("RemoteConfig"))
+		remote_config.remote_config_listener_registered.connect(func(): _clear_pending("RemoteConfig"))
 		remote_config.remote_config_updated.connect(_on_config_updated)
 
 		remote_config.remote_config_error.connect(_on_module_error.bind("RemoteConfig"))

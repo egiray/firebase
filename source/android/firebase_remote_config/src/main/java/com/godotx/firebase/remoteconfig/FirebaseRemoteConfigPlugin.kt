@@ -48,12 +48,13 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     override fun getPluginSignals(): Set<SignalInfo> {
         return setOf(
-            SignalInfo("remote_config_initialized", Boolean::class.javaObjectType),
+            SignalInfo("remote_config_initialized", Int::class.javaObjectType),
+            SignalInfo("remote_config_updated", Array<String>::class.java),
             SignalInfo("remote_config_error", String::class.java),
             SignalInfo("remote_config_fetch_completed", Int::class.javaObjectType),
-            SignalInfo("remote_config_updated", Array<String>::class.java),
             SignalInfo("remote_config_defaults_set"),
-            SignalInfo("remote_config_settings_updated")
+            SignalInfo("remote_config_settings_updated"),
+            SignalInfo("remote_config_listener_registered")
         )
     }
 
@@ -62,27 +63,29 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
         val ctx = activity
         if (ctx == null) {
             Log.e(TAG, "initialize: activity is null")
-            emitSignal("remote_config_initialized", false)
+            emitSignal("remote_config_initialized", 0)
             emitSignal("remote_config_error", "activity_null")
             return
         }
 
         if (FirebaseApp.getApps(ctx).isEmpty()) {
             Log.e(TAG, "Firebase is not initialized — call FirebaseCore.initialize() first")
-            emitSignal("remote_config_initialized", false)
+            emitSignal("remote_config_initialized", 0)
             emitSignal("remote_config_error", "firebase_not_initialized")
             return
         }
 
-        setup_realtime_updates()
         Log.d(TAG, "Firebase Remote Config initialized")
-        emitSignal("remote_config_initialized", true)
+        emitSignal("remote_config_initialized", 1)
     }
 
     @UsedByGodot
-    fun setup_realtime_updates(): Boolean {
-        if (!isInitialized()) return false
-        if (listenerRegistration != null) return true
+    fun setup_realtime_updates() {
+        if (!isInitialized()) return
+        if (listenerRegistration != null) {
+            emitSignal("remote_config_listener_registered")
+            return
+        }
         listenerRegistration = remoteConfig.addOnConfigUpdateListener(object : ConfigUpdateListener {
             override fun onUpdate(configUpdate: ConfigUpdate) {
                 Log.d(TAG, "Config updated keys: " + configUpdate.updatedKeys)
@@ -99,7 +102,7 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
                 emitSignal("remote_config_error", error.message ?: "config_update_error")
             }
         })
-        return true
+        emitSignal("remote_config_listener_registered")
     }
 
     @UsedByGodot
