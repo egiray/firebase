@@ -17,7 +17,7 @@ public:
 
     void initialize();
     void crash();
-    void log_non_fatal_exception(String message);
+    void log_non_fatal(String message);
     void log_message(String message);
     void set_user_id(String user_id);
     void set_custom_value_string(String key, String value);

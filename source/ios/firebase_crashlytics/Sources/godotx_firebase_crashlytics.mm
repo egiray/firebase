@@ -10,7 +10,7 @@ GodotxFirebaseCrashlytics* GodotxFirebaseCrashlytics::instance = nullptr;
 void GodotxFirebaseCrashlytics::_bind_methods() {
     ClassDB::bind_method(D_METHOD("initialize"), &GodotxFirebaseCrashlytics::initialize);
     ClassDB::bind_method(D_METHOD("crash"), &GodotxFirebaseCrashlytics::crash);
-    ClassDB::bind_method(D_METHOD("log_non_fatal_exception", "message"), &GodotxFirebaseCrashlytics::log_non_fatal_exception);
+    ClassDB::bind_method(D_METHOD("log_non_fatal", "message"), &GodotxFirebaseCrashlytics::log_non_fatal);
     ClassDB::bind_method(D_METHOD("log_message", "message"), &GodotxFirebaseCrashlytics::log_message);
     ClassDB::bind_method(D_METHOD("set_user_id", "user_id"), &GodotxFirebaseCrashlytics::set_user_id);
     ClassDB::bind_method(D_METHOD("set_custom_value_string", "key", "value"), &GodotxFirebaseCrashlytics::set_custom_value_string);
@@ -39,7 +39,7 @@ void GodotxFirebaseCrashlytics::crash() {
     @[][1];
 }
 
-void GodotxFirebaseCrashlytics::log_non_fatal_exception(String message) {
+void GodotxFirebaseCrashlytics::log_non_fatal(String message) {
     @try {
         NSString* nsMessage = [NSString stringWithUTF8String:message.utf8().get_data()];
         NSError* error = [NSError errorWithDomain:@"GodotxFirebaseHarness"

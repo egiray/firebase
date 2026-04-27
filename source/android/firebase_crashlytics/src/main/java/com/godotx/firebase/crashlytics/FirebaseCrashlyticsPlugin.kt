@@ -67,7 +67,7 @@ class FirebaseCrashlyticsPlugin(godot: Godot) : GodotPlugin(godot) {
     }
 
     @UsedByGodot
-    fun log_non_fatal_exception(message: String) {
+    fun log_non_fatal(message: String) {
         val crashlyticsInstance = crashlytics
         if (crashlyticsInstance == null) {
             Log.e(TAG, "Firebase Crashlytics not initialized")
