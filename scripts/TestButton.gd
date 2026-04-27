@@ -1,5 +1,5 @@
-extends Button
 class_name TestButton
+extends Button
 
 enum Status {
 	IDLE,
@@ -12,6 +12,7 @@ enum Status {
 var _timer: SceneTreeTimer = null
 
 func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_PASS
 	update_status(Status.IDLE)
 
 func update_status(status: int) -> void:
@@ -29,6 +30,6 @@ func update_status(status: int) -> void:
 func _start_reset_timer() -> void:
 	if _timer:
 		_timer = null # Cancel previous timer by letting it die
-	
+
 	_timer = get_tree().create_timer(reset_time)
 	_timer.timeout.connect(func(): update_status(Status.IDLE))

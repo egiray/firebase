@@ -20,10 +20,7 @@ public:
     void log_non_fatal(String message);
     void log_message(String message);
     void set_user_id(String user_id);
-    void set_custom_value_string(String key, String value);
-    void set_custom_value_int(String key, int64_t value);
-    void set_custom_value_bool(String key, bool value);
-    void set_custom_value_float(String key, double value);
+    void set_custom_value(String key, String value);
 
     GodotxFirebaseCrashlytics();
     ~GodotxFirebaseCrashlytics();

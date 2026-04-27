@@ -3,11 +3,11 @@ extends Control
 
 # Dashboard button paths (used by flash_status / update_btn_status)
 const ActionRegistry = preload("res://scripts/ActionRegistry.gd")
-const INIT_PATH := "VBoxContainer/ContextGroup/Dashboard/List/InitializeButton"
-const ANALYTICS_PATH := "VBoxContainer/ContextGroup/Dashboard/List/AnalyticsButton"
-const CRASHLYTICS_PATH := "VBoxContainer/ContextGroup/Dashboard/List/CrashlyticsButton"
-const MESSAGING_PATH := "VBoxContainer/ContextGroup/Dashboard/List/MessagingButton"
-const REMOTE_CONFIG_PATH := "VBoxContainer/ContextGroup/Dashboard/List/RemoteConfigButton"
+const INIT_PATH := "VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/InitializeButton"
+const ANALYTICS_PATH := "VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/AnalyticsButton"
+const CRASHLYTICS_PATH := "VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/CrashlyticsButton"
+const MESSAGING_PATH := "VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/MessagingButton"
+const REMOTE_CONFIG_PATH := "VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/RemoteConfigButton"
 
 # Firebase Singletons (Public)
 var core: Object = null
@@ -36,11 +36,11 @@ var _apns_ready: bool = false
 @onready var module_container: Control = $VBoxContainer/ContextGroup/ModuleContainer
 
 # Dashboard Buttons
-@onready var init_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/InitializeButton
-@onready var analytics_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/AnalyticsButton
-@onready var crashlytics_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/CrashlyticsButton
-@onready var messaging_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/MessagingButton
-@onready var remote_config_btn: Button = $VBoxContainer/ContextGroup/Dashboard/List/RemoteConfigButton
+@onready var init_btn: Button = $VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/InitializeButton
+@onready var analytics_btn: Button = $VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/AnalyticsButton
+@onready var crashlytics_btn: Button = $VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/CrashlyticsButton
+@onready var messaging_btn: Button = $VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/MessagingButton
+@onready var remote_config_btn: Button = $VBoxContainer/ContextGroup/Dashboard/MarginContainer/List/RemoteConfigButton
 
 # Log Elements
 @onready var log_output: TextEdit = $VBoxContainer/LogGroup/MarginContainer/VBoxContainer/LogOutput
@@ -213,28 +213,29 @@ func enable_service_buttons(enabled: bool) -> void:
 
 func _module_btn_path(module_name: String, btn_name: String) -> String:
 	var base_path: String = "VBoxContainer/ContextGroup/ModuleContainer/" + module_name.replace(" ", "") + "View/"
+
 	if module_name in ["Remote Config", "RemoteConfig"]:
-		return base_path + "List/" + btn_name
+		return base_path + "List/MarginContainer/ButtonList/" + btn_name
 
-	if module_name == "Analytics":
-		return base_path + "ScrollContainer/List/" + btn_name
-
-	return base_path + btn_name
+	# Analytics, Messaging ve Crashlytics artık aynı Scroll/Margin yapısını kullanıyor
+	return base_path + "ScrollContainer/MarginContainer/List/" + btn_name
 
 func _connect_module_buttons(module_name: String, instance: Node) -> void:
 	if module_name == "Analytics":
-		var list: Node = instance.get_node("ScrollContainer/List")
+		var list: Node = instance.get_node("ScrollContainer/MarginContainer/List")
 		for btn_name in _actions["Analytics"].keys():
 			_connect_btn(list, btn_name, _run_action.bind("Analytics", btn_name))
 	elif module_name == "Messaging":
+		var list: Node = instance.get_node("ScrollContainer/MarginContainer/List")
 		for btn_name in _actions["Messaging"].keys():
-			_connect_btn(instance, btn_name, _run_action.bind("Messaging", btn_name))
+			_connect_btn(list, btn_name, _run_action.bind("Messaging", btn_name))
 		_update_messaging_view_state(instance)
 	elif module_name == "Crashlytics":
+		var list: Node = instance.get_node("ScrollContainer/MarginContainer/List")
 		for btn_name in _actions["Crashlytics"].keys():
-			_connect_btn(instance, btn_name, _run_action.bind("Crashlytics", btn_name))
+			_connect_btn(list, btn_name, _run_action.bind("Crashlytics", btn_name))
 	elif module_name == "Remote Config":
-		var list: Node = instance.get_node("List")
+		var list: Node = instance.get_node("List/MarginContainer/ButtonList")
 		for btn_name in _actions["RemoteConfig"].keys():
 			_connect_btn(list, btn_name, _run_action.bind("RemoteConfig", btn_name))
 

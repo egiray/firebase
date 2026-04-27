@@ -81,8 +81,8 @@ static func get_actions() -> Dictionary:
 				"signal": "crashlytics_user_id_set", "desc": "Setting User ID for crashes"
 			},
 			"CustomValueButton": {
-				"method": "set_custom_value_string", "args": ["test_key", "test_value"],
-				"signal": "crashlytics_value_set", "desc": "Setting custom value"
+				"method": "set_custom_value", "args": ["test_key", "test_value"],
+				"signal": "crashlytics_value_set", "desc": "Setting custom value: test_key = test_value (String)"
 			}
 		},
 		"RemoteConfig": {
