@@ -45,6 +45,23 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
                 String::class.java
             ),
             SignalInfo(
+                "analytics_user_id_set",
+                String::class.java
+            ),
+            SignalInfo(
+                "analytics_default_params_set"
+            ),
+            SignalInfo(
+                "analytics_collection_enabled_set",
+                Boolean::class.javaObjectType
+            ),
+            SignalInfo(
+                "analytics_data_reset"
+            ),
+            SignalInfo(
+                "analytics_consent_set"
+            ),
+            SignalInfo(
                 "analytics_error",
                 String::class.java
             )
@@ -126,8 +143,10 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
         try {
             analytics.setUserId(user_id)
             Log.d(TAG, "User ID set")
+            emitSignal("analytics_user_id_set", user_id ?: "")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set User ID", e)
+            emitSignal("analytics_error", e.message ?: "user_id_error")
         }
     }
 
@@ -137,8 +156,10 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
         try {
             analytics.setUserProperty(name, value)
             Log.d(TAG, "User property set: $name = $value")
+            emitSignal("analytics_property_set", name)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set user property", e)
+            emitSignal("analytics_error", e.message ?: "user_property_error")
         }
     }
 
@@ -151,8 +172,10 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
             bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, screen_class)
             analytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle)
             Log.d(TAG, "Screen view logged: $screen_name ($screen_class)")
+            emitSignal("analytics_screen_logged", screen_name)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to log screen view", e)
+            emitSignal("analytics_error", e.message ?: "screen_view_error")
         }
     }
 
@@ -163,8 +186,10 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
             val bundle = dictionaryToBundle(params)
             analytics.setDefaultEventParameters(bundle)
             Log.d(TAG, "Default event parameters set")
+            emitSignal("analytics_default_params_set")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set default event parameters", e)
+            emitSignal("analytics_error", e.message ?: "default_params_error")
         }
     }
 
@@ -174,8 +199,10 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
         try {
             analytics.setAnalyticsCollectionEnabled(enabled)
             Log.d(TAG, "Analytics collection enabled: $enabled")
+            emitSignal("analytics_collection_enabled_set", enabled)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set collection enabled", e)
+            emitSignal("analytics_error", e.message ?: "collection_enabled_error")
         }
     }
 
@@ -185,8 +212,10 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
         try {
             analytics.resetAnalyticsData()
             Log.d(TAG, "Analytics data reset")
+            emitSignal("analytics_data_reset")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to reset analytics data", e)
+            emitSignal("analytics_error", e.message ?: "reset_data_error")
         }
     }
 
@@ -218,8 +247,10 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
 
             analytics.setConsent(consentMap)
             Log.d(TAG, "Analytics consent set: $consentMap")
+            emitSignal("analytics_consent_set")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set consent", e)
+            emitSignal("analytics_error", e.message ?: "consent_error")
         }
     }
 
@@ -234,7 +265,7 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
     fun log_level_end(level_name: String, success: Boolean) {
         val params = Dictionary()
         params[FirebaseAnalytics.Param.LEVEL_NAME] = level_name
-        params[FirebaseAnalytics.Param.SUCCESS] = if (success) "1" else "0"
+        params[FirebaseAnalytics.Param.SUCCESS] = if (success) 1 else 0
         log_event(FirebaseAnalytics.Event.LEVEL_END, params)
     }
 
@@ -263,6 +294,26 @@ class FirebaseAnalyticsPlugin(godot: Godot) : GodotPlugin(godot) {
     @UsedByGodot
     fun log_tutorial_complete() {
         log_event(FirebaseAnalytics.Event.TUTORIAL_COMPLETE, Dictionary())
+    }
+
+    @UsedByGodot
+    fun log_post_score(score: Long, board: String, character: String) {
+        val params = Dictionary()
+        params[FirebaseAnalytics.Param.SCORE] = score
+        if (board.isNotEmpty()) {
+            params[FirebaseAnalytics.Param.LEVEL_NAME] = board
+        }
+        if (character.isNotEmpty()) {
+            params[FirebaseAnalytics.Param.CHARACTER] = character
+        }
+        log_event(FirebaseAnalytics.Event.POST_SCORE, params)
+    }
+
+    @UsedByGodot
+    fun log_unlock_achievement(id: String) {
+        val params = Dictionary()
+        params[FirebaseAnalytics.Param.ACHIEVEMENT_ID] = id
+        log_event(FirebaseAnalytics.Event.UNLOCK_ACHIEVEMENT, params)
     }
 }
 

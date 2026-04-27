@@ -22,6 +22,7 @@ void GodotxFirebaseCrashlytics::_bind_methods() {
     ADD_SIGNAL(MethodInfo("crashlytics_non_fatal_logged", PropertyInfo(Variant::STRING, "message")));
     ADD_SIGNAL(MethodInfo("crashlytics_message_logged", PropertyInfo(Variant::STRING, "message")));
     ADD_SIGNAL(MethodInfo("crashlytics_value_set", PropertyInfo(Variant::STRING, "key")));
+    ADD_SIGNAL(MethodInfo("crashlytics_user_id_set", PropertyInfo(Variant::STRING, "user_id")));
     ADD_SIGNAL(MethodInfo("crashlytics_error", PropertyInfo(Variant::STRING, "message")));
 }
 
@@ -72,6 +73,7 @@ void GodotxFirebaseCrashlytics::set_user_id(String user_id) {
         NSString* nsUserId = [NSString stringWithUTF8String:user_id.utf8().get_data()];
         [[FIRCrashlytics crashlytics] setUserID:nsUserId];
         NSLog(@"[GodotxFirebaseCrashlytics] Set user ID: %@", nsUserId);
+        emit_signal("crashlytics_user_id_set", user_id);
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseCrashlytics] Failed to set user ID: %@", exception.reason);

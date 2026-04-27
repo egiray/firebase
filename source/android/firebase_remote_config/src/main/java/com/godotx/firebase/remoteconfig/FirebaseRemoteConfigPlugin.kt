@@ -37,6 +37,11 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
         Log.v(TAG, "Firebase Remote Config plugin loaded")
     }
 
+    private fun isInitialized(): Boolean {
+        val ctx = activity ?: return false
+        return FirebaseApp.getApps(ctx).isNotEmpty()
+    }
+
     override fun getPluginName(): String {
         return "GodotxFirebaseRemoteConfig"
     }
@@ -45,8 +50,10 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
         return setOf(
             SignalInfo("remote_config_initialized", Boolean::class.javaObjectType),
             SignalInfo("remote_config_error", String::class.java),
-            SignalInfo("fetch_completed", Int::class.javaObjectType),
-            SignalInfo("config_updated", Array<String>::class.java)
+            SignalInfo("remote_config_fetch_completed", Int::class.javaObjectType),
+            SignalInfo("remote_config_updated", Array<String>::class.java),
+            SignalInfo("remote_config_defaults_set"),
+            SignalInfo("remote_config_settings_updated")
         )
     }
 
@@ -67,19 +74,22 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
             return
         }
 
-        setupRealtimeUpdates()
+        setup_realtime_updates()
         Log.d(TAG, "Firebase Remote Config initialized")
         emitSignal("remote_config_initialized", true)
     }
 
-    private fun setupRealtimeUpdates() {
+    @UsedByGodot
+    fun setup_realtime_updates(): Boolean {
+        if (!isInitialized()) return false
+        if (listenerRegistration != null) return true
         listenerRegistration = remoteConfig.addOnConfigUpdateListener(object : ConfigUpdateListener {
             override fun onUpdate(configUpdate: ConfigUpdate) {
                 Log.d(TAG, "Config updated keys: " + configUpdate.updatedKeys)
                 remoteConfig.activate().addOnCompleteListener { task ->
                     if (task.isSuccessful) {
                         val updatedKeysArray = configUpdate.updatedKeys.toTypedArray()
-                        emitSignal("config_updated", updatedKeysArray as Any)
+                        emitSignal("remote_config_updated", updatedKeysArray as Any)
                     }
                 }
             }
@@ -89,24 +99,27 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
                 emitSignal("remote_config_error", error.message ?: "config_update_error")
             }
         })
+        return true
     }
 
     @UsedByGodot
     fun fetch_and_activate() {
+        if (!isInitialized()) return
         remoteConfig.fetchAndActivate().addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 val status = if (task.result) FETCH_SUCCESS else FETCH_CACHED
-                emitSignal("fetch_completed", status)
+                emitSignal("remote_config_fetch_completed", status)
             } else {
                 val status = if (task.exception is FirebaseRemoteConfigFetchThrottledException)
                     FETCH_THROTTLED else FETCH_FAILURE
-                emitSignal("fetch_completed", status)
+                emitSignal("remote_config_fetch_completed", status)
             }
         }
     }
 
     @UsedByGodot
     fun get_string(key: String, defaultValue: String): String {
+        if (!isInitialized()) return defaultValue
         val value = remoteConfig.getValue(key)
         return if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) defaultValue
                else value.asString()
@@ -114,6 +127,7 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun get_int(key: String, defaultValue: Int): Int {
+        if (!isInitialized()) return defaultValue
         val value = remoteConfig.getValue(key)
         return if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) defaultValue
                else value.asLong().toInt()
@@ -121,22 +135,34 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun get_float(key: String, defaultValue: Float): Float {
+        if (!isInitialized()) return defaultValue
         val value = remoteConfig.getValue(key)
         return if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) defaultValue
                else value.asDouble().toFloat()
     }
 
     @UsedByGodot
-    fun get_bool(key: String, defaultValue: Boolean): Boolean {
+    fun get_double(key: String, defaultValue: Double): Double {
+        if (!isInitialized()) return defaultValue
         val value = remoteConfig.getValue(key)
         return if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) defaultValue
-               else value.asBoolean()
+               else value.asDouble()
+    }
+
+    @UsedByGodot
+    fun get_bool(key: String, defaultValue: Boolean): Int {
+        if (!isInitialized()) return if (defaultValue) 1 else 0
+        val value = remoteConfig.getValue(key)
+        val boolVal = if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) defaultValue
+                      else value.asBoolean()
+        return if (boolVal) 1 else 0
     }
 
     @UsedByGodot
     fun get_dictionary(key: String): Dictionary {
-        val value = remoteConfig.getValue(key)
         val dict = Dictionary()
+        if (!isInitialized()) return dict
+        val value = remoteConfig.getValue(key)
         if (value.source == FirebaseRemoteConfig.VALUE_SOURCE_STATIC) return dict
 
         return try {
@@ -149,20 +175,38 @@ class FirebaseRemoteConfigPlugin(godot: Godot) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun set_defaults(defaults: Dictionary) {
+        if (!isInitialized()) return
         val map = mutableMapOf<String, Any>()
         for (key in defaults.keys) {
             val value = defaults[key]
             if (value != null) map[key] = value
         }
-        remoteConfig.setDefaultsAsync(map)
+        remoteConfig.setDefaultsAsync(map).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d(TAG, "Default config parameters set")
+                emitSignal("remote_config_defaults_set")
+            } else {
+                Log.e(TAG, "Failed to set default config parameters", task.exception)
+                emitSignal("remote_config_error", task.exception?.message ?: "set_defaults_error")
+            }
+        }
     }
 
     @UsedByGodot
     fun set_minimum_fetch_interval(seconds: Float) {
+        if (!isInitialized()) return
         val settings = FirebaseRemoteConfigSettings.Builder()
             .setMinimumFetchIntervalInSeconds(seconds.toLong())
             .build()
-        remoteConfig.setConfigSettingsAsync(settings)
+        remoteConfig.setConfigSettingsAsync(settings).addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                Log.d(TAG, "Remote Config settings updated")
+                emitSignal("remote_config_settings_updated")
+            } else {
+                Log.e(TAG, "Failed to update Remote Config settings", task.exception)
+                emitSignal("remote_config_error", task.exception?.message ?: "update_settings_error")
+            }
+        }
     }
 
     @UsedByGodot

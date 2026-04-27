@@ -50,6 +50,18 @@ static Dictionary ns_dict_to_godot(NSDictionary *nsDict) {
     return dict;
 }
 
+#define FIREBASE_CHECK_INITIALIZED_V(ret) \
+    if (![FIRApp defaultApp]) { \
+        ERR_PRINT("Firebase not initialized. Call initialize() first."); \
+        return ret; \
+    }
+
+#define FIREBASE_CHECK_INITIALIZED() \
+    if (![FIRApp defaultApp]) { \
+        ERR_PRINT("Firebase not initialized. Call initialize() first."); \
+        return; \
+    }
+
 // ---------------------------------------------------------------------------
 // Lifecycle
 // ---------------------------------------------------------------------------
@@ -79,6 +91,7 @@ void GodotxFirebaseRemoteConfig::_bind_methods() {
     ClassDB::bind_method(D_METHOD("get_string", "key", "default_value"), &GodotxFirebaseRemoteConfig::get_string);
     ClassDB::bind_method(D_METHOD("get_int", "key", "default_value"), &GodotxFirebaseRemoteConfig::get_int);
     ClassDB::bind_method(D_METHOD("get_float", "key", "default_value"), &GodotxFirebaseRemoteConfig::get_float);
+    ClassDB::bind_method(D_METHOD("get_double", "key", "default_value"), &GodotxFirebaseRemoteConfig::get_double);
     ClassDB::bind_method(D_METHOD("get_bool", "key", "default_value"), &GodotxFirebaseRemoteConfig::get_bool);
     ClassDB::bind_method(D_METHOD("get_dictionary", "key"), &GodotxFirebaseRemoteConfig::get_dictionary);
     ClassDB::bind_method(D_METHOD("set_defaults", "defaults"), &GodotxFirebaseRemoteConfig::set_defaults);
@@ -88,8 +101,10 @@ void GodotxFirebaseRemoteConfig::_bind_methods() {
 
     ADD_SIGNAL(MethodInfo("remote_config_initialized", PropertyInfo(Variant::BOOL, "success")));
     ADD_SIGNAL(MethodInfo("remote_config_error", PropertyInfo(Variant::STRING, "message")));
-    ADD_SIGNAL(MethodInfo("fetch_completed", PropertyInfo(Variant::INT, "status")));
-    ADD_SIGNAL(MethodInfo("config_updated", PropertyInfo(Variant::ARRAY, "updated_keys")));
+    ADD_SIGNAL(MethodInfo("remote_config_fetch_completed", PropertyInfo(Variant::INT, "status")));
+    ADD_SIGNAL(MethodInfo("remote_config_updated", PropertyInfo(Variant::ARRAY, "updated_keys")));
+    ADD_SIGNAL(MethodInfo("remote_config_defaults_set"));
+    ADD_SIGNAL(MethodInfo("remote_config_settings_updated"));
 }
 
 // ---------------------------------------------------------------------------
@@ -111,6 +126,7 @@ void GodotxFirebaseRemoteConfig::initialize() {
 // ---------------------------------------------------------------------------
 
 void GodotxFirebaseRemoteConfig::fetch_and_activate() {
+    FIREBASE_CHECK_INITIALIZED();
     FIRRemoteConfig *rc = [FIRRemoteConfig remoteConfig];
     [rc fetchAndActivateWithCompletionHandler:^(FIRRemoteConfigFetchAndActivateStatus status,
                                                 NSError *error) {
@@ -128,7 +144,7 @@ void GodotxFirebaseRemoteConfig::fetch_and_activate() {
         }
         dispatch_async(dispatch_get_main_queue(), ^{
             if (GodotxFirebaseRemoteConfig::instance) {
-                GodotxFirebaseRemoteConfig::instance->emit_signal("fetch_completed", godot_status);
+                GodotxFirebaseRemoteConfig::instance->emit_signal("remote_config_fetch_completed", godot_status);
             }
         });
     }];
@@ -139,30 +155,42 @@ void GodotxFirebaseRemoteConfig::fetch_and_activate() {
 // ---------------------------------------------------------------------------
 
 String GodotxFirebaseRemoteConfig::get_string(const String &key, const String &default_value) {
+    FIREBASE_CHECK_INITIALIZED_V(default_value);
     FIRRemoteConfigValue *value = [FIRRemoteConfig remoteConfig][ns_from_string(key)];
     if (value.source == FIRRemoteConfigSourceStatic) return default_value;
     return string_from_ns(value.stringValue);
 }
 
 int GodotxFirebaseRemoteConfig::get_int(const String &key, int default_value) {
+    FIREBASE_CHECK_INITIALIZED_V(default_value);
     FIRRemoteConfigValue *value = [FIRRemoteConfig remoteConfig][ns_from_string(key)];
     if (value.source == FIRRemoteConfigSourceStatic) return default_value;
     return [value.numberValue intValue];
 }
 
 float GodotxFirebaseRemoteConfig::get_float(const String &key, float default_value) {
+    FIREBASE_CHECK_INITIALIZED_V(default_value);
     FIRRemoteConfigValue *value = [FIRRemoteConfig remoteConfig][ns_from_string(key)];
     if (value.source == FIRRemoteConfigSourceStatic) return default_value;
     return [value.numberValue floatValue];
 }
 
-bool GodotxFirebaseRemoteConfig::get_bool(const String &key, bool default_value) {
+double GodotxFirebaseRemoteConfig::get_double(const String &key, double default_value) {
+    FIREBASE_CHECK_INITIALIZED_V(default_value);
     FIRRemoteConfigValue *value = [FIRRemoteConfig remoteConfig][ns_from_string(key)];
     if (value.source == FIRRemoteConfigSourceStatic) return default_value;
-    return value.boolValue;
+    return [value.numberValue doubleValue];
+}
+
+int GodotxFirebaseRemoteConfig::get_bool(const String &key, bool default_value) {
+    FIREBASE_CHECK_INITIALIZED_V(default_value ? 1 : 0);
+    FIRRemoteConfigValue *value = [FIRRemoteConfig remoteConfig][ns_from_string(key)];
+    bool boolVal = (value.source == FIRRemoteConfigSourceStatic) ? default_value : value.boolValue;
+    return boolVal ? 1 : 0;
 }
 
 Dictionary GodotxFirebaseRemoteConfig::get_dictionary(const String &key) {
+    FIREBASE_CHECK_INITIALIZED_V(Dictionary());
     FIRRemoteConfigValue *value = [FIRRemoteConfig remoteConfig][ns_from_string(key)];
     id json = value.JSONValue;
     if (![json isKindOfClass:[NSDictionary class]]) return Dictionary();
@@ -174,6 +202,7 @@ Dictionary GodotxFirebaseRemoteConfig::get_dictionary(const String &key) {
 // ---------------------------------------------------------------------------
 
 void GodotxFirebaseRemoteConfig::set_defaults(const Dictionary &defaults) {
+    FIREBASE_CHECK_INITIALIZED();
     NSMutableDictionary *nsDefaults = [NSMutableDictionary dictionary];
     Array keys = defaults.keys();
     for (int i = 0; i < keys.size(); i++) {
@@ -191,19 +220,24 @@ void GodotxFirebaseRemoteConfig::set_defaults(const Dictionary &defaults) {
         }
     }
     [[FIRRemoteConfig remoteConfig] setDefaults:nsDefaults];
+    emit_signal("remote_config_defaults_set");
 }
 
 void GodotxFirebaseRemoteConfig::set_minimum_fetch_interval(float seconds) {
+    FIREBASE_CHECK_INITIALIZED();
     FIRRemoteConfigSettings *settings = [[FIRRemoteConfigSettings alloc] init];
     settings.minimumFetchInterval = (NSTimeInterval)seconds;
     [FIRRemoteConfig remoteConfig].configSettings = settings;
+    emit_signal("remote_config_settings_updated");
 }
 
 // ---------------------------------------------------------------------------
 // Real-time listener
 // ---------------------------------------------------------------------------
 
-void GodotxFirebaseRemoteConfig::setup_realtime_updates() {
+bool GodotxFirebaseRemoteConfig::setup_realtime_updates() {
+    FIREBASE_CHECK_INITIALIZED_V(false);
+    if (_listenerRegistration) return true;
     FIRRemoteConfig *rc = [FIRRemoteConfig remoteConfig];
     _listenerRegistration = [rc addOnConfigUpdateListener:^(FIRRemoteConfigUpdate *update,
                                                              NSError *error) {
@@ -215,11 +249,12 @@ void GodotxFirebaseRemoteConfig::setup_realtime_updates() {
             }
             dispatch_async(dispatch_get_main_queue(), ^{
                 if (GodotxFirebaseRemoteConfig::instance) {
-                    GodotxFirebaseRemoteConfig::instance->emit_signal("config_updated", keys);
+                    GodotxFirebaseRemoteConfig::instance->emit_signal("remote_config_updated", keys);
                 }
             });
         }];
     }];
+    return true;
 }
 
 void GodotxFirebaseRemoteConfig::remove_config_update_listener() {

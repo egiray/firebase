@@ -20,11 +20,12 @@ public:
     String get_string(const String &key, const String &default_value);
     int get_int(const String &key, int default_value);
     float get_float(const String &key, float default_value);
-    bool get_bool(const String &key, bool default_value);
+    double get_double(const String &key, double default_value);
+    int get_bool(const String &key, bool default_value);
     Dictionary get_dictionary(const String &key);
     void set_defaults(const Dictionary &defaults);
     void set_minimum_fetch_interval(float seconds);
-    void setup_realtime_updates();
+    bool setup_realtime_updates();
     void remove_config_update_listener();
 
     GodotxFirebaseRemoteConfig();

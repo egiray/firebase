@@ -26,6 +26,10 @@ public:
     void subscribe_to_topic(String topic);
     void unsubscribe_from_topic(String topic);
     Dictionary get_last_notification();
+    
+    static Variant ns_object_to_variant(id val);
+    static Dictionary user_info_to_dictionary(NSDictionary *userInfo);
+
 
     GodotxFirebaseMessaging();
     ~GodotxFirebaseMessaging();

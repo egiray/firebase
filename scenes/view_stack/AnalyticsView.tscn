@@ -88,3 +88,52 @@ theme_override_font_sizes/font_size = 28
 text = "🎮 Log Level Start"
 script = ExtResource("1")
 
+[node name="LogLevelEndButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🏁 Log Level End"
+script = ExtResource("1")
+
+[node name="LogEarnButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "💰 Log Earn Currency"
+script = ExtResource("1")
+
+[node name="LogSpendButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "💸 Log Spend Currency"
+script = ExtResource("1")
+
+[node name="LogTutorialBeginButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "📖 Log Tutorial Begin"
+script = ExtResource("1")
+
+[node name="LogTutorialCompleteButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🎓 Log Tutorial Complete"
+script = ExtResource("1")
+
+[node name="LogPostScoreButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🏆 Log Post Score"
+script = ExtResource("1")
+
+[node name="LogUnlockAchievementButton" type="Button" parent="ScrollContainer/List"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "🔓 Log Unlock Achievement"
+script = ExtResource("1")
+

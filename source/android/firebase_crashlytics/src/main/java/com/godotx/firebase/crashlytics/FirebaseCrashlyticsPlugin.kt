@@ -37,6 +37,9 @@ class FirebaseCrashlyticsPlugin(godot: Godot) : GodotPlugin(godot) {
             SignalInfo("crashlytics_value_set",
                 String::class.java
             ),
+            SignalInfo("crashlytics_user_id_set",
+                String::class.java
+            ),
             SignalInfo("crashlytics_error",
                 String::class.java
             )
@@ -113,6 +116,7 @@ class FirebaseCrashlyticsPlugin(godot: Godot) : GodotPlugin(godot) {
         try {
             crashlyticsInstance.setUserId(user_id)
             Log.d(TAG, "Set user ID: $user_id")
+            emitSignal("crashlytics_user_id_set", user_id)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to set user ID", e)
             emitSignal("crashlytics_error", e.message ?: "set_user_error")

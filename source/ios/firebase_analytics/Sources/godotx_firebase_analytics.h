@@ -31,6 +31,8 @@ public:
     void log_spend_currency(String currency_name, float value, String item_name);
     void log_tutorial_begin();
     void log_tutorial_complete();
+    void log_post_score(int64_t score, String board, String character);
+    void log_unlock_achievement(String achievement_id);
 
     GodotxFirebaseAnalytics();
     ~GodotxFirebaseAnalytics();

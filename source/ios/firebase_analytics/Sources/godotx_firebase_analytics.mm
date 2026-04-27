@@ -24,11 +24,18 @@ void GodotxFirebaseAnalytics::_bind_methods() {
     ClassDB::bind_method(D_METHOD("log_spend_currency", "currency_name", "value", "item_name"), &GodotxFirebaseAnalytics::log_spend_currency);
     ClassDB::bind_method(D_METHOD("log_tutorial_begin"), &GodotxFirebaseAnalytics::log_tutorial_begin);
     ClassDB::bind_method(D_METHOD("log_tutorial_complete"), &GodotxFirebaseAnalytics::log_tutorial_complete);
+    ClassDB::bind_method(D_METHOD("log_post_score", "score", "board", "character"), &GodotxFirebaseAnalytics::log_post_score, DEFVAL(""), DEFVAL(""));
+    ClassDB::bind_method(D_METHOD("log_unlock_achievement", "id"), &GodotxFirebaseAnalytics::log_unlock_achievement);
 
     ADD_SIGNAL(MethodInfo("analytics_initialized", PropertyInfo(Variant::BOOL, "success")));
     ADD_SIGNAL(MethodInfo("analytics_event_logged", PropertyInfo(Variant::STRING, "event_name")));
     ADD_SIGNAL(MethodInfo("analytics_screen_logged", PropertyInfo(Variant::STRING, "screen_name")));
     ADD_SIGNAL(MethodInfo("analytics_property_set", PropertyInfo(Variant::STRING, "name")));
+    ADD_SIGNAL(MethodInfo("analytics_user_id_set", PropertyInfo(Variant::STRING, "user_id")));
+    ADD_SIGNAL(MethodInfo("analytics_default_params_set"));
+    ADD_SIGNAL(MethodInfo("analytics_collection_enabled_set", PropertyInfo(Variant::BOOL, "enabled")));
+    ADD_SIGNAL(MethodInfo("analytics_data_reset"));
+    ADD_SIGNAL(MethodInfo("analytics_consent_set"));
     ADD_SIGNAL(MethodInfo("analytics_error", PropertyInfo(Variant::STRING, "message")));
 }
 
@@ -108,6 +115,7 @@ void GodotxFirebaseAnalytics::set_user_id(String user_id) {
     @try {
         NSString* nsUserId = [NSString stringWithUTF8String:user_id.utf8().get_data()];
         [FIRAnalytics setUserID:nsUserId];
+        emit_signal("analytics_user_id_set", user_id);
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseAnalytics] Failed to set user id: %@", exception.reason);
@@ -120,6 +128,7 @@ void GodotxFirebaseAnalytics::set_default_event_parameters(Dictionary params) {
     @try {
         NSDictionary* nsParams = dictionary_to_nsdict(params);
         [FIRAnalytics setDefaultEventParameters:nsParams];
+        emit_signal("analytics_default_params_set");
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseAnalytics] Failed to set default parameters: %@", exception.reason);
@@ -131,6 +140,7 @@ void GodotxFirebaseAnalytics::set_collection_enabled(bool enabled) {
     NSLog(@"[GodotxFirebaseAnalytics] set_collection_enabled: %d", enabled);
     @try {
         [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
+        emit_signal("analytics_collection_enabled_set", enabled);
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseAnalytics] Failed to set collection enabled: %@", exception.reason);
@@ -142,6 +152,7 @@ void GodotxFirebaseAnalytics::reset_analytics_data() {
     NSLog(@"[GodotxFirebaseAnalytics] reset_analytics_data");
     @try {
         [FIRAnalytics resetAnalyticsData];
+        emit_signal("analytics_data_reset");
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseAnalytics] Failed to reset analytics data: %@", exception.reason);
@@ -152,29 +163,30 @@ void GodotxFirebaseAnalytics::reset_analytics_data() {
 void GodotxFirebaseAnalytics::set_consent(Dictionary consent_data) {
     NSLog(@"[GodotxFirebaseAnalytics] set_consent");
     @try {
-        NSMutableDictionary<FIRConsentType, NSNumber *> *consentMap = [NSMutableDictionary dictionary];
+        NSMutableDictionary<FIRConsentType, FIRConsentStatus> *consentMap = [NSMutableDictionary dictionary];
 
         if (consent_data.has("ad_storage") && consent_data["ad_storage"].get_type() == Variant::BOOL) {
             bool val = consent_data["ad_storage"];
-            consentMap[FIRConsentTypeAdStorage] = @(val ? FIRConsentStatusGranted : FIRConsentStatusDenied);
+            consentMap[FIRConsentTypeAdStorage] = val ? FIRConsentStatusGranted : FIRConsentStatusDenied;
         }
 
         if (consent_data.has("analytics_storage") && consent_data["analytics_storage"].get_type() == Variant::BOOL) {
             bool val = consent_data["analytics_storage"];
-            consentMap[FIRConsentTypeAnalyticsStorage] = @(val ? FIRConsentStatusGranted : FIRConsentStatusDenied);
+            consentMap[FIRConsentTypeAnalyticsStorage] = val ? FIRConsentStatusGranted : FIRConsentStatusDenied;
         }
 
         if (consent_data.has("ad_user_data") && consent_data["ad_user_data"].get_type() == Variant::BOOL) {
             bool val = consent_data["ad_user_data"];
-            consentMap[FIRConsentTypeAdUserData] = @(val ? FIRConsentStatusGranted : FIRConsentStatusDenied);
+            consentMap[FIRConsentTypeAdUserData] = val ? FIRConsentStatusGranted : FIRConsentStatusDenied;
         }
 
         if (consent_data.has("ad_personalization") && consent_data["ad_personalization"].get_type() == Variant::BOOL) {
             bool val = consent_data["ad_personalization"];
-            consentMap[FIRConsentTypeAdPersonalization] = @(val ? FIRConsentStatusGranted : FIRConsentStatusDenied);
+            consentMap[FIRConsentTypeAdPersonalization] = val ? FIRConsentStatusGranted : FIRConsentStatusDenied;
         }
 
         [FIRAnalytics setConsent:consentMap];
+        emit_signal("analytics_consent_set");
     }
     @catch (NSException *exception) {
         NSLog(@"[GodotxFirebaseAnalytics] Failed to set consent: %@", exception.reason);
@@ -191,7 +203,7 @@ void GodotxFirebaseAnalytics::log_level_start(String level_name) {
 void GodotxFirebaseAnalytics::log_level_end(String level_name, bool success) {
     Dictionary params;
     params["level_name"] = level_name;
-    params["success"] = success ? "1" : "0";
+    params["success"] = success ? 1 : 0;
     log_event(String(kFIREventLevelEnd.UTF8String), params);
 }
 
@@ -216,6 +228,24 @@ void GodotxFirebaseAnalytics::log_tutorial_begin() {
 
 void GodotxFirebaseAnalytics::log_tutorial_complete() {
     log_event(String(kFIREventTutorialComplete.UTF8String), Dictionary());
+}
+
+void GodotxFirebaseAnalytics::log_post_score(int64_t score, String board, String character) {
+    Dictionary params;
+    params[String(kFIRParameterScore.UTF8String)] = score;
+    if (!board.is_empty()) {
+        params[String(kFIRParameterLevelName.UTF8String)] = board;
+    }
+    if (!character.is_empty()) {
+        params[String(kFIRParameterCharacter.UTF8String)] = character;
+    }
+    log_event(String(kFIREventPostScore.UTF8String), params);
+}
+
+void GodotxFirebaseAnalytics::log_unlock_achievement(String achievement_id) {
+    Dictionary params;
+    params[String(kFIRParameterAchievementID.UTF8String)] = achievement_id;
+    log_event(String(kFIREventUnlockAchievement.UTF8String), params);
 }
 
 void GodotxFirebaseAnalytics::log_event(String event_name, Dictionary params) {

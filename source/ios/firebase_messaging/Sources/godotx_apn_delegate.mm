@@ -25,24 +25,8 @@
     return sharedInstance;
 }
 
-// Helper: convert userInfo to Godot Dictionary, excluding APNs/FCM internal keys
-static Dictionary userInfoToGodotDictionary(NSDictionary *userInfo) {
-    Dictionary dict;
-    NSSet *reservedKeys = [NSSet setWithArray:@[
-        @"aps", @"gcm.message_id", @"google.c.a.e", @"google.c.fid",
-        @"google.c.sender.id", @"gcm.notification.sound"
-    ]];
-    for (NSString *key in userInfo) {
-        if ([reservedKeys containsObject:key]) continue;
-        id val = userInfo[key];
-        if ([val isKindOfClass:[NSString class]]) {
-            dict[String::utf8([key UTF8String])] = String::utf8([(NSString*)val UTF8String]);
-        } else if ([val isKindOfClass:[NSNumber class]]) {
-            dict[String::utf8([key UTF8String])] = String::utf8([[val stringValue] UTF8String]);
-        }
-    }
-    return dict;
-}
+// Note: reserved keys filtering and recursive parsing is now handled centrally 
+// in GodotxFirebaseMessaging::user_info_to_dictionary
 
 #pragma mark - UNUserNotificationCenterDelegate
 
@@ -56,7 +40,7 @@ static Dictionary userInfoToGodotDictionary(NSDictionary *userInfo) {
 
     NSString *title = notification.request.content.title ?: @"";
     NSString *body = notification.request.content.body ?: @"";
-    Dictionary data = userInfoToGodotDictionary(userInfo);
+    Dictionary data = GodotxFirebaseMessaging::user_info_to_dictionary(userInfo);
 
     dispatch_async(dispatch_get_main_queue(), ^{
         if (GodotxFirebaseMessaging::instance) {
@@ -84,7 +68,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
 
     NSString *title = response.notification.request.content.title ?: @"";
     NSString *body = response.notification.request.content.body ?: @"";
-    Dictionary data = userInfoToGodotDictionary(userInfo);
+    Dictionary data = GodotxFirebaseMessaging::user_info_to_dictionary(userInfo);
 
     dispatch_async(dispatch_get_main_queue(), ^{
         if (GodotxFirebaseMessaging::instance) {

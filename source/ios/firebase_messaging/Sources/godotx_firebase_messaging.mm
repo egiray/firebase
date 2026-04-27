@@ -316,25 +316,56 @@ Dictionary GodotxFirebaseMessaging::get_last_notification() {
         }
     }
 
-    // Collect custom data fields (exclude internal APNs/FCM keys)
+    Dictionary result;
+    result["title"] = String::utf8([title UTF8String]);
+    result["body"] = String::utf8([body UTF8String]);
+    result["data"] = user_info_to_dictionary(userInfo);
+    return result;
+}
+
+Variant GodotxFirebaseMessaging::ns_object_to_variant(id val) {
+    if ([val isKindOfClass:[NSString class]]) {
+        return String::utf8([(NSString *)val UTF8String]);
+    } else if ([val isKindOfClass:[NSNumber class]]) {
+        NSNumber *n = (NSNumber *)val;
+        if (CFNumberIsFloatType((CFNumberRef)n)) {
+            return [n doubleValue];
+        } else {
+            return (int64_t)[n longLongValue];
+        }
+    } else if ([val isKindOfClass:[NSDictionary class]]) {
+        Dictionary d;
+        NSDictionary *dict = (NSDictionary *)val;
+        for (id key in dict) {
+            d[ns_object_to_variant(key)] = ns_object_to_variant(dict[key]);
+        }
+        return d;
+    } else if ([val isKindOfClass:[NSArray class]]) {
+        Array a;
+        NSArray *arr = (NSArray *)val;
+        for (id item in arr) {
+            a.push_back(ns_object_to_variant(item));
+        }
+        return a;
+    }
+    return Variant();
+}
+
+Dictionary GodotxFirebaseMessaging::user_info_to_dictionary(NSDictionary *userInfo) {
     Dictionary dataDict;
+    if (!userInfo) return dataDict;
+
     NSSet *reservedKeys = [NSSet setWithArray:@[
         @"aps", @"gcm.message_id", @"google.c.a.e", @"google.c.fid",
         @"google.c.sender.id", @"gcm.notification.sound"
     ]];
-    for (NSString *key in userInfo) {
-        if ([reservedKeys containsObject:key]) continue;
-        id val = userInfo[key];
-        if ([val isKindOfClass:[NSString class]]) {
-            dataDict[String::utf8([key UTF8String])] = String::utf8([(NSString*)val UTF8String]);
-        } else if ([val isKindOfClass:[NSNumber class]]) {
-            dataDict[String::utf8([key UTF8String])] = String::utf8([[val stringValue] UTF8String]);
-        }
-    }
 
-    Dictionary result;
-    result["title"] = String::utf8([title UTF8String]);
-    result["body"] = String::utf8([body UTF8String]);
-    result["data"] = dataDict;
-    return result;
+    for (NSString *key in userInfo) {
+        // Skip reserved keys and any key starting with "gcm." or "google."
+        if ([reservedKeys containsObject:key] || [key hasPrefix:@"gcm."] || [key hasPrefix:@"google."]) {
+            continue;
+        }
+        dataDict[String::utf8([key UTF8String])] = ns_object_to_variant(userInfo[key]);
+    }
+    return dataDict;
 }

@@ -1,7 +1,6 @@
 extends Control
 
 
-
 # Firebase Singletons
 var core: Object = null
 var analytics: Object = null
@@ -33,6 +32,100 @@ const ANALYTICS_PATH := "VBoxContainer/ContextGroup/Dashboard/List/AnalyticsButt
 const CRASHLYTICS_PATH := "VBoxContainer/ContextGroup/Dashboard/List/CrashlyticsButton"
 const MESSAGING_PATH := "VBoxContainer/ContextGroup/Dashboard/List/MessagingButton"
 const REMOTE_CONFIG_PATH := "VBoxContainer/ContextGroup/Dashboard/List/RemoteConfigButton"
+
+# Action Registry for Test Harness
+var ACTIONS := {
+	"Analytics": {
+		"LogEventButton": {"method": "log_event", "args": ["test_event", {"p1": "v1", "p2": 123}], "signal": "analytics_event_logged", "desc": "Logging event: test_event"},
+		"LogScreenButton": {"method": "log_screen_view", "args": ["MainScene", "GodotSampleActivity"], "signal": "analytics_screen_logged", "desc": "Logging screen: MainScene"},
+		"UserPropsButton": {"method": "set_user_property", "args": ["test_prop", "test_value"], "signal": "analytics_property_set", "desc": "Setting user property: test_prop = test_value"},
+		"SetUserIdButton": {"method": "set_user_id", "args": ["player_123"], "signal": "analytics_user_id_set", "desc": "Setting User ID: player_123"},
+		"SetDefaultParamsButton": {"method": "set_default_event_parameters", "args": [ {"app_version": "1.0.0"}], "signal": "analytics_default_params_set", "desc": "Setting default params: app_version=1.0.0"},
+		"SetConsentButton": {"method": "set_consent", "args": [ {"analytics_storage": false}], "signal": "analytics_consent_set", "desc": "Setting Consent: analytics_storage=false"},
+		"SetCollectionEnabledButton": {"method": "set_collection_enabled", "args": [false], "signal": "analytics_collection_enabled_set", "desc": "Toggling Collection Enabled: false"},
+		"ResetDataButton": {"method": "reset_analytics_data", "args": [], "signal": "analytics_data_reset", "desc": "Resetting Analytics Data"},
+		"LogLevelStartButton": {"method": "log_level_start", "args": ["level_1"], "signal": "analytics_event_logged", "desc": "Logging level_start: level_1"},
+		"LogLevelEndButton": {"method": "log_level_end", "args": ["level_1", true], "signal": "analytics_event_logged", "desc": "Logging level_end: level_1 (Success)"},
+		"LogEarnButton": {"method": "log_earn_currency", "args": ["gold", 100.0], "signal": "analytics_event_logged", "desc": "Logging earn_currency: 100 gold"},
+		"LogSpendButton": {"method": "log_spend_currency", "args": ["gold", 50.0, "sword"], "signal": "analytics_event_logged", "desc": "Logging spend_currency: 50 gold for sword"},
+		"LogTutorialBeginButton": {"method": "log_tutorial_begin", "args": [], "signal": "analytics_event_logged", "desc": "Logging tutorial_begin"},
+		"LogTutorialCompleteButton": {"method": "log_tutorial_complete", "args": [], "signal": "analytics_event_logged", "desc": "Logging tutorial_complete"},
+		"LogPostScoreButton": {"method": "log_post_score", "args": [5000, "hall_of_fame", "ninja"], "signal": "analytics_event_logged", "desc": "Logging post_score: 5000"},
+		"LogUnlockAchievementButton": {"method": "log_unlock_achievement", "args": ["master_of_gemini"], "signal": "analytics_event_logged", "desc": "Logging unlock_achievement: master_of_gemini"}
+	},
+	"Crashlytics": {
+		"FatalButton": {"method": "crash", "args": [], "mode": "manual", "desc": "!!! FORCING FATAL CRASH !!!"},
+		"NonFatalButton": {"method": "log_non_fatal_exception", "args": ["This is a test non-fatal error"], "signal": "crashlytics_non_fatal_logged", "desc": "Logging non-fatal error"},
+		"CustomValueButton": {"method": "set_custom_value_string", "args": ["test_key", "test_value"], "signal": "crashlytics_value_set", "desc": "Setting custom value"}
+	},
+	"RemoteConfig": {
+		"FetchButton": {"method": "fetch_and_activate", "args": [], "signal": "remote_config_fetch_completed", "desc": "Fetching and Activating..."},
+		"GetStringButton": {
+			"method": "get_string",
+			"args": ["welcome_message", "DEFAULT"],
+			"mode": "getter",
+			"desc": "Getting 'welcome_message'",
+			"validator": func(res): return typeof(res) == TYPE_STRING,
+			"failure_log": "Expected String, but received invalid type"
+		},
+		"GetIntButton": {
+			"method": "get_int",
+			"args": ["min_version", -1],
+			"mode": "getter",
+			"desc": "Getting 'min_version'",
+			"validator": func(res): return typeof(res) == TYPE_INT,
+			"failure_log": "Expected Int, but received invalid type"
+		},
+		"GetFloatButton": {
+			"method": "get_float",
+			"args": ["drop_rate", 0.0],
+			"mode": "getter",
+			"desc": "Getting 'drop_rate'",
+			"validator": func(res): return typeof(res) == TYPE_FLOAT,
+			"failure_log": "Expected Float, but received invalid type"
+		},
+		"GetBoolButton": {
+			"method": "get_bool",
+			"args": ["feature_enabled", false],
+			"mode": "getter",
+			"desc": "Getting 'feature_enabled'",
+			"validator": func(res): return typeof(res) == TYPE_INT and (res == 0 or res == 1),
+			"failure_log": "Expected Int (1 or 0), but received invalid type"
+		},
+		"GetDictButton": {
+			"method": "get_dictionary",
+			"args": ["game_config"],
+			"mode": "getter",
+			"desc": "Getting 'game_config'",
+			"validator": func(res): return typeof(res) == TYPE_DICTIONARY,
+			"failure_log": "Expected Dictionary, but received invalid type"
+		},
+		"SetDefaultsButton": {"method": "set_defaults", "args": [ {"welcome_message": "Hello from Defaults!", "min_version": 10, "drop_rate": 0.05, "feature_enabled": true}], "signal": "remote_config_defaults_set", "desc": "Setting local defaults"},
+		"SetIntervalButton": {"method": "set_minimum_fetch_interval", "args": [0.0], "signal": "remote_config_settings_updated", "desc": "Setting fetch interval to 0s (Dev Mode)"},
+		"ListenerButton": {
+			"method": "setup_realtime_updates",
+			"args": [],
+			"mode": "getter",
+			"desc": "Enabling Real-time updates listener",
+			"validator": func(res): return res == true or res == 1,
+			"failure_log": "Failed to setup listener (method missing or returned false)"
+		}
+	},
+	"Messaging": {
+		"GetTokenButton": {"method": "get_token", "args": [], "signal": "messaging_token_received", "desc": "Requesting FCM token..."},
+		"PermissionButton": {"method": "request_permission", "args": [], "signal": "messaging_permission_granted", "desc": "Requesting permissions..."},
+		"SubscribeButton": {"method": "subscribe_to_topic", "args": ["test_topic"], "signal": "messaging_topic_subscribed", "desc": "Subscribing to: test_topic"},
+		"UnsubscribeButton": {"method": "unsubscribe_from_topic", "args": ["test_topic"], "signal": "messaging_topic_unsubscribed", "desc": "Unsubscribing from: test_topic"},
+		"GetLastNotificationButton": {
+			"method": "get_last_notification",
+			"args": [],
+			"mode": "getter",
+			"desc": "Getting last notification...",
+			"validator": func(res): return typeof(res) == TYPE_DICTIONARY and not res.is_empty(),
+			"failure_log": "No previous notification data found"
+		}
+	}
+}
 
 # Tracks the module-view button currently awaiting an async signal, per module.
 # The harness only permits one in-flight call per module at a time.
@@ -70,9 +163,9 @@ func _apply_safe_area() -> void:
 		if has_node("VBoxContainer"):
 			var vbox = $VBoxContainer
 			vbox.offset_top = top_margin
-			vbox.offset_bottom = -bottom_margin
+			vbox.offset_bottom = - bottom_margin
 			vbox.offset_left = left_margin
-			vbox.offset_right = -right_margin
+			vbox.offset_right = - right_margin
 
 func initialize_firebase_plugins() -> void:
 	# Core
@@ -88,9 +181,35 @@ func initialize_firebase_plugins() -> void:
 	if Engine.has_singleton("GodotxFirebaseAnalytics"):
 		analytics = Engine.get_singleton("GodotxFirebaseAnalytics")
 		analytics.analytics_initialized.connect(_on_module_init_done.bind("Analytics"))
-		analytics.analytics_event_logged.connect(_on_analytics_event_logged)
-		analytics.analytics_screen_logged.connect(_on_analytics_screen_logged)
-		analytics.analytics_property_set.connect(_on_analytics_property_set)
+		
+		# Connect all async signals to generic success handler with validation
+		analytics.analytics_event_logged.connect(func(event_name):
+			var success = not event_name.is_empty()
+			if success: log_message("[Analytics] ✓ Event logged: " + event_name)
+			else: log_message("[Analytics] ✗ Event log returned empty name")
+			_clear_pending("Analytics", success))
+
+		analytics.analytics_screen_logged.connect(func(screen_name):
+			var success = not screen_name.is_empty()
+			if success: log_message("[Analytics] ✓ Screen logged: " + screen_name)
+			else: log_message("[Analytics] ✗ Screen log returned empty name")
+			_clear_pending("Analytics", success))
+
+		analytics.analytics_property_set.connect(func(prop_name):
+			var success = not prop_name.is_empty()
+			if success: log_message("[Analytics] ✓ Property set: " + prop_name)
+			else: log_message("[Analytics] ✗ Property set returned empty name")
+			_clear_pending("Analytics", success))
+
+		analytics.analytics_user_id_set.connect(func(id):
+			# Note: User ID could intentionally be empty if resetting
+			log_message("[Analytics] ✓ User ID set: " + id); _clear_pending("Analytics", true))
+
+		analytics.analytics_default_params_set.connect(func(): log_message("[Analytics] ✓ Default params set"); _clear_pending("Analytics"))
+		analytics.analytics_collection_enabled_set.connect(func(enabled): log_message("[Analytics] ✓ Collection enabled: " + str(enabled)); _clear_pending("Analytics"))
+		analytics.analytics_data_reset.connect(func(): log_message("[Analytics] ✓ Analytics data reset"); _clear_pending("Analytics"))
+		analytics.analytics_consent_set.connect(func(): log_message("[Analytics] ✓ Consent updated"); _clear_pending("Analytics"))
+		
 		analytics.analytics_error.connect(_on_module_error.bind("Analytics"))
 		log_message("✓ Firebase Analytics plugin found")
 	else:
@@ -100,9 +219,12 @@ func initialize_firebase_plugins() -> void:
 	if Engine.has_singleton("GodotxFirebaseCrashlytics"):
 		crashlytics = Engine.get_singleton("GodotxFirebaseCrashlytics")
 		crashlytics.crashlytics_initialized.connect(_on_module_init_done.bind("Crashlytics"))
-		crashlytics.crashlytics_non_fatal_logged.connect(_on_crashlytics_non_fatal_logged)
-		crashlytics.crashlytics_message_logged.connect(_on_crashlytics_message_logged)
-		crashlytics.crashlytics_value_set.connect(_on_crashlytics_value_set)
+		
+		# Connect async signals
+		crashlytics.crashlytics_non_fatal_logged.connect(func(msg): log_message("[Crashlytics] ✓ Non-fatal logged: " + msg); _clear_pending("Crashlytics"))
+		crashlytics.crashlytics_message_logged.connect(func(msg): log_message("[Crashlytics] ✓ Message logged: " + msg); _clear_pending("Crashlytics"))
+		crashlytics.crashlytics_value_set.connect(func(key): log_message("[Crashlytics] ✓ Value set for: " + key); _clear_pending("Crashlytics"))
+		
 		crashlytics.crashlytics_error.connect(_on_module_error.bind("Crashlytics"))
 		log_message("✓ Firebase Crashlytics plugin found")
 	else:
@@ -129,8 +251,17 @@ func initialize_firebase_plugins() -> void:
 	if Engine.has_singleton("GodotxFirebaseRemoteConfig"):
 		remote_config = Engine.get_singleton("GodotxFirebaseRemoteConfig")
 		remote_config.remote_config_initialized.connect(_on_module_init_done.bind("RemoteConfig"))
-		remote_config.fetch_completed.connect(_on_rc_fetch_completed)
-		remote_config.config_updated.connect(_on_config_updated)
+		
+		# Connect async signals (with validation where needed)
+		remote_config.remote_config_fetch_completed.connect(func(status):
+			var _status_map = {0: "SUCCESS", 1: "CACHED", 2: "FAILURE", 3: "THROTTLED"}
+			log_message("[Remote Config] Fetch result: " + _status_map.get(status, "UNKNOWN"))
+			_clear_pending("RemoteConfig", status == 0 or status == 1)
+		)
+		remote_config.remote_config_defaults_set.connect(func(): _clear_pending("RemoteConfig"))
+		remote_config.remote_config_settings_updated.connect(func(): _clear_pending("RemoteConfig"))
+		remote_config.remote_config_updated.connect(_on_config_updated)
+		
 		remote_config.remote_config_error.connect(_on_module_error.bind("RemoteConfig"))
 		log_message("✓ Firebase Remote Config plugin found")
 	else:
@@ -191,7 +322,7 @@ func enable_service_buttons(enabled: bool) -> void:
 
 func _module_btn_path(module_name: String, btn_name: String) -> String:
 	var base_path = "VBoxContainer/ContextGroup/ModuleContainer/" + module_name.replace(" ", "") + "View/"
-	if module_name == "Remote Config":
+	if module_name in ["Remote Config", "RemoteConfig"]:
 		return base_path + "List/" + btn_name
 	elif module_name == "Analytics":
 		return base_path + "ScrollContainer/List/" + btn_name
@@ -200,42 +331,72 @@ func _module_btn_path(module_name: String, btn_name: String) -> String:
 func _connect_module_buttons(module_name: String, instance: Node) -> void:
 	if module_name == "Analytics":
 		var list = instance.get_node("ScrollContainer/List")
-		_connect_btn(list, "LogEventButton", _on_log_event_pressed)
-		_connect_btn(list, "LogScreenButton", _on_log_screen_pressed)
-		_connect_btn(list, "UserPropsButton", _on_set_user_property_pressed)
-		_connect_btn(list, "SetUserIdButton", _on_set_user_id_pressed)
-		_connect_btn(list, "SetDefaultParamsButton", _on_set_default_params_pressed)
-		_connect_btn(list, "SetConsentButton", _on_set_consent_pressed)
-		_connect_btn(list, "SetCollectionEnabledButton", _on_set_collection_enabled_pressed)
-		_connect_btn(list, "ResetDataButton", _on_reset_data_pressed)
-		_connect_btn(list, "LogLevelStartButton", _on_log_level_start_pressed)
+		for btn_name in ACTIONS["Analytics"].keys():
+			_connect_btn(list, btn_name, _run_action.bind("Analytics", btn_name))
 	elif module_name == "Messaging":
-		_connect_btn(instance, "GetTokenButton", _on_get_token_pressed)
-		_connect_btn(instance, "PermissionButton", _on_request_messaging_permission_pressed)
-		_connect_btn(instance, "SubscribeButton", _on_subscribe_topic_pressed)
-		_connect_btn(instance, "UnsubscribeButton", _on_unsubscribe_topic_pressed)
-		_connect_btn(instance, "GetLastNotificationButton", _on_get_last_notification_pressed)
+		for btn_name in ACTIONS["Messaging"].keys():
+			_connect_btn(instance, btn_name, _run_action.bind("Messaging", btn_name))
 		_update_messaging_view_state(instance)
 	elif module_name == "Crashlytics":
-		_connect_btn(instance, "FatalButton", _on_crash_pressed)
-		_connect_btn(instance, "NonFatalButton", _on_non_fatal_pressed)
-		_connect_btn(instance, "CustomValueButton", _on_set_custom_value_pressed)
+		for btn_name in ACTIONS["Crashlytics"].keys():
+			_connect_btn(instance, btn_name, _run_action.bind("Crashlytics", btn_name))
 	elif module_name == "Remote Config":
-		# Note: Buttons are inside the 'List' child of the ScrollContainer
 		var list = instance.get_node("List")
-		_connect_btn(list, "FetchButton", _on_rc_fetch_pressed)
-		_connect_btn(list, "GetStringButton", _on_rc_get_string_pressed)
-		_connect_btn(list, "GetIntButton", _on_rc_get_int_pressed)
-		_connect_btn(list, "GetFloatButton", _on_rc_get_float_pressed)
-		_connect_btn(list, "GetBoolButton", _on_rc_get_bool_pressed)
-		_connect_btn(list, "GetDictButton", _on_rc_get_dict_pressed)
-		_connect_btn(list, "SetDefaultsButton", _on_rc_set_defaults_pressed)
-		_connect_btn(list, "SetIntervalButton", _on_rc_set_interval_pressed)
-		_connect_btn(list, "ListenerButton", _on_rc_listener_toggle_pressed)
+		for btn_name in ACTIONS["RemoteConfig"].keys():
+			_connect_btn(list, btn_name, _run_action.bind("RemoteConfig", btn_name))
 
 func _connect_btn(instance: Node, btn_name: String, method: Callable) -> void:
 	var btn = instance.get_node_or_null(btn_name)
 	if btn: btn.pressed.connect(method)
+
+# ============== ACTION RUNNER ==============
+
+func _run_action(module_name: String, action_id: String) -> void:
+	var log_name = "Remote Config" if module_name == "RemoteConfig" else module_name
+	var config: Dictionary = ACTIONS.get(module_name, {}).get(action_id, {})
+	if config.is_empty():
+		log_message("[System] Error: No config for %s:%s" % [module_name, action_id])
+		return
+
+	var plugin = null
+	match module_name:
+		"Analytics": plugin = analytics
+		"Crashlytics": plugin = crashlytics
+		"Messaging": plugin = messaging
+		"RemoteConfig": plugin = remote_config
+
+	var btn_path = _module_btn_path(module_name, action_id)
+	if not plugin:
+		log_message("[%s] Plugin not available" % log_name)
+		flash_status(btn_path, TestButton.Status.FAILURE)
+		return
+
+	log_message("\n[%s] %s" % [log_name, config.get("desc", "Running...")])
+	flash_status(btn_path, TestButton.Status.PENDING)
+
+	# Mark as pending for async signals
+	if config.get("signal", "") != "":
+		_pending_call[module_name] = btn_path
+
+	# Execute the call
+	var method = config["method"]
+	var args = config.get("args", [])
+	var result = plugin.callv(method, args)
+
+	# If it's a getter, log the result and validate
+	if config.get("mode", "") == "getter":
+		var _key_prefix = "'%s' = " % args[0] if args.size() > 0 and typeof(args[0]) == TYPE_STRING else ""
+		log_message("[%s] %s%s" % [log_name, _key_prefix, str(result)])
+		var is_valid = true
+		if config.has("validator"):
+			is_valid = config["validator"].call(result)
+		if not is_valid and config.has("failure_log"):
+			log_message("[%s] ✗ %s" % [log_name, config["failure_log"]])
+		flash_status(btn_path, TestButton.Status.SUCCESS if is_valid else TestButton.Status.FAILURE)
+
+	# If it's a sync call (no signal and not manual mode), set success immediately
+	if config.get("signal", "") == "" and config.get("mode", "") != "manual" and config.get("mode", "") != "getter":
+		flash_status(btn_path, TestButton.Status.SUCCESS)
 
 # ============== CORE ==============
 
@@ -294,165 +455,15 @@ func _on_module_init_done(success: bool, module_name: String) -> void:
 		log_message("[%s] ✗ Initialization failed" % module_name)
 		if module_btn: module_btn.disabled = true
 
-# ============== ANALYTICS ==============
+# (Analytics Handlers removed - now using _run_action)
 
-func _on_log_event_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "LogEventButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Logging event: test_event")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Analytics"] = btn_path
-	analytics.log_event("test_event", {"p1": "v1", "p2": 123})
-
-func _on_log_screen_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "LogScreenButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Logging screen: MainScene")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Analytics"] = btn_path
-	analytics.log_screen_view("MainScene", "GodotSampleActivity")
-
-func _on_analytics_event_logged(event_name: String) -> void:
-	log_message("[Analytics] ✓ Event logged: " + event_name)
-	_clear_pending("Analytics")
-
-func _on_analytics_screen_logged(screen_name: String) -> void:
-	log_message("[Analytics] ✓ Screen logged: " + screen_name)
-	_clear_pending("Analytics")
-
-func _on_set_user_property_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "UserPropsButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Setting user property: test_prop = test_value")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Analytics"] = btn_path
-	analytics.set_user_property("test_prop", "test_value")
-
-func _on_analytics_property_set(prop_name: String) -> void:
-	log_message("[Analytics] ✓ Property set: " + prop_name)
-	_clear_pending("Analytics")
-
-func _on_set_user_id_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "SetUserIdButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Setting User ID: player_123")
-	flash_status(btn_path, TestButton.Status.SUCCESS)
-	analytics.set_user_id("player_123")
-
-func _on_set_default_params_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "SetDefaultParamsButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Setting default params: app_version=1.0.0")
-	flash_status(btn_path, TestButton.Status.SUCCESS)
-	analytics.set_default_event_parameters({"app_version": "1.0.0"})
-
-func _on_set_consent_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "SetConsentButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Setting Consent: analytics_storage=false")
-	flash_status(btn_path, TestButton.Status.SUCCESS)
-	analytics.set_consent({"analytics_storage": false})
-
-func _on_set_collection_enabled_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "SetCollectionEnabledButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Toggling Collection Enabled: false")
-	flash_status(btn_path, TestButton.Status.SUCCESS)
-	analytics.set_collection_enabled(false)
-
-func _on_reset_data_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "ResetDataButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Resetting Analytics Data")
-	flash_status(btn_path, TestButton.Status.SUCCESS)
-	analytics.reset_analytics_data()
-
-func _on_log_level_start_pressed() -> void:
-	var btn_path = _module_btn_path("Analytics", "LogLevelStartButton")
-	if not analytics:
-		log_message("[Analytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Analytics] Logging level_start: level_1")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Analytics"] = btn_path
-	analytics.log_level_start("level_1")
-
-# ============== MESSAGING ==============
-
-func _on_get_token_pressed() -> void:
-	var btn_path = _module_btn_path("Messaging", "GetTokenButton")
-	if not messaging:
-		log_message("[Messaging] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Messaging] Requesting FCM token...")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Messaging"] = btn_path
-	messaging.get_token()
-
-func _on_request_messaging_permission_pressed() -> void:
-	var btn_path = _module_btn_path("Messaging", "PermissionButton")
-	if not messaging:
-		log_message("[Messaging] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Messaging] Requesting permissions...")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Messaging"] = btn_path
-	messaging.request_permission()
-
-func _on_subscribe_topic_pressed() -> void:
-	var btn_path = _module_btn_path("Messaging", "SubscribeButton")
-	if not messaging:
-		log_message("[Messaging] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Messaging] Subscribing to: test_topic")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Messaging"] = btn_path
-	messaging.subscribe_to_topic("test_topic")
-
-func _on_unsubscribe_topic_pressed() -> void:
-	var btn_path = _module_btn_path("Messaging", "UnsubscribeButton")
-	if not messaging:
-		log_message("[Messaging] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Messaging] Unsubscribing from: test_topic")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Messaging"] = btn_path
-	messaging.unsubscribe_from_topic("test_topic")
+# (Messaging pressed handlers removed - now using _run_action)
 
 func _on_messaging_permission_granted() -> void:
 	log_message("[Messaging] ✓ Permission granted")
 	_messaging_permission_granted = true
 	_clear_pending("Messaging")
-			
+
 	var view = module_container.get_node_or_null("MessagingView")
 	if view:
 		_update_messaging_view_state(view)
@@ -473,20 +484,22 @@ func _on_messaging_topic_unsubscribed(topic: String) -> void:
 	_clear_pending("Messaging")
 
 func _on_messaging_token_received(token: String) -> void:
+	if token.is_empty():
+		log_message("[Messaging] ✗ Token received but it is EMPTY")
+		_clear_pending("Messaging", false)
+		return
+		
 	_fcm_token = token
 	log_message("[Messaging] Token received: " + token)
-	_clear_pending("Messaging")
+	_clear_pending("Messaging", true)
 	
 	var view = module_container.get_node_or_null("MessagingView")
 	if view:
 		_update_messaging_view_state(view)
 
-func _on_messaging_apn_token_received(token: String) -> void:
+func _on_messaging_apn_token_received(_token: String) -> void:
 	_apns_ready = true
 	log_message("[Messaging] APNs Token received (Ready for FCM)")
-	# If we already have permissions, we can now fetch FCM token
-	if _messaging_permission_granted and messaging:
-		messaging.get_token()
 
 func _update_messaging_view_state(view: Node) -> void:
 	var has_token = !_fcm_token.is_empty()
@@ -515,69 +528,11 @@ func _on_messaging_message_received(title: String, body: String, data: Dictionar
 		log_message("[Messaging] Data payload: " + str(data))
 
 func _on_get_last_notification_pressed() -> void:
-	var btn_path = _module_btn_path("Messaging", "GetLastNotificationButton")
-	if not messaging:
-		log_message("[Messaging] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Messaging] Getting last notification...")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	var data = messaging.get_last_notification()
-	if typeof(data) == TYPE_DICTIONARY and not data.is_empty():
-		log_message("[Messaging] ✓ Last notification data: " + str(data))
-		flash_status(btn_path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Messaging] ✗ No previous notification data found")
-		flash_status(btn_path, TestButton.Status.FAILURE)
+	# Keep this as a separate handler if it needs complex return logic, 
+	# but for now we've moved the basic call to _run_action.
+	pass
 
-# ============== CRASHLYTICS ==============
-
-func _on_crash_pressed() -> void:
-	var btn_path = _module_btn_path("Crashlytics", "FatalButton")
-	if not crashlytics:
-		log_message("[Crashlytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Crashlytics] !!! FORCING FATAL CRASH !!!")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	# If the crash truly propagates, the app terminates and the yellow state is lost.
-	# If the exception is caught by Godot's dispatcher, the button stays yellow — a
-	# visible hint that the crash did not actually take down the process.
-	crashlytics.crash()
-
-func _on_non_fatal_pressed() -> void:
-	var btn_path = _module_btn_path("Crashlytics", "NonFatalButton")
-	if not crashlytics:
-		log_message("[Crashlytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Crashlytics] Logging non-fatal error")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["Crashlytics"] = btn_path
-	crashlytics.log_non_fatal_exception("This is a test non-fatal error")
-
-func _on_set_custom_value_pressed() -> void:
-	var btn_path = _module_btn_path("Crashlytics", "CustomValueButton")
-	if not crashlytics:
-		log_message("[Crashlytics] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Crashlytics] Setting custom value")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	crashlytics.set_custom_value_string("test_key", "test_value")
-	_pending_call["Crashlytics"] = btn_path
-
-func _on_crashlytics_non_fatal_logged(message: String) -> void:
-	log_message("[Crashlytics] ✓ Non-fatal logged: " + message)
-	_clear_pending("Crashlytics")
-
-func _on_crashlytics_message_logged(message: String) -> void:
-	log_message("[Crashlytics] ✓ Message logged: " + message)
-	_clear_pending("Crashlytics")
-
-func _on_crashlytics_value_set(key: String) -> void:
-	log_message("[Crashlytics] ✓ Value set for: " + key)
-	_clear_pending("Crashlytics")
+# (Crashlytics Handlers removed - now using _run_action)
 
 # ============== ERRORS ==============
 
@@ -591,10 +546,10 @@ func _on_module_error(message: String, module_name: String) -> void:
 		flash_status(path, TestButton.Status.FAILURE)
 		_pending_call[module_name] = ""
 
-func _clear_pending(module_name: String) -> void:
+func _clear_pending(module_name: String, success: bool = true) -> void:
 	var path: String = _pending_call.get(module_name, "")
 	if path != "":
-		flash_status(path, TestButton.Status.SUCCESS)
+		flash_status(path, TestButton.Status.SUCCESS if success else TestButton.Status.FAILURE)
 		_pending_call[module_name] = ""
 
 # ============== LOG CONTROLS ==============
@@ -609,119 +564,7 @@ func _on_copy_log_pressed() -> void:
 		log_message("[System] Log copied to clipboard")
 
 
-# ============== REMOTE CONFIG ==============
-
-func _on_rc_fetch_pressed() -> void:
-	var btn_path = _module_btn_path("Remote Config", "FetchButton")
-	if not remote_config:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(btn_path, TestButton.Status.FAILURE)
-		return
-	log_message("\n[Remote Config] Fetching and Activating...")
-	flash_status(btn_path, TestButton.Status.PENDING)
-	_pending_call["RemoteConfig"] = btn_path
-	remote_config.fetch_and_activate()
-
-func _on_rc_fetch_completed(status: int) -> void:
-	var status_str = "UNKNOWN"
-	match status:
-		0: status_str = "SUCCESS"
-		1: status_str = "CACHED"
-		2: status_str = "FAILURE"
-		3: status_str = "THROTTLED"
-	log_message("[Remote Config] ✓ Fetch result: " + status_str)
-	if status == 0 or status == 1:
-		_clear_pending("RemoteConfig")
-	else:
-		var path: String = _pending_call.get("RemoteConfig", "")
-		if path != "":
-			flash_status(path, TestButton.Status.FAILURE)
-			_pending_call["RemoteConfig"] = ""
-
-func _on_rc_get_string_pressed() -> void:
-	var path = _module_btn_path("Remote Config", "GetStringButton")
-	if remote_config:
-		var val = remote_config.get_string("welcome_message", "DEFAULT_VALUE")
-		log_message("[Remote Config] 'welcome_message' = " + str(val))
-		flash_status(path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(path, TestButton.Status.FAILURE)
-
-func _on_rc_get_int_pressed() -> void:
-	var path = _module_btn_path("Remote Config", "GetIntButton")
-	if remote_config:
-		var val = remote_config.get_int("min_version", -1)
-		log_message("[Remote Config] 'min_version' = " + str(val))
-		flash_status(path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(path, TestButton.Status.FAILURE)
-
-func _on_rc_get_float_pressed() -> void:
-	var path = _module_btn_path("Remote Config", "GetFloatButton")
-	if remote_config:
-		var val = remote_config.get_float("drop_rate", 0.0)
-		log_message("[Remote Config] 'drop_rate' = " + str(val))
-		flash_status(path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(path, TestButton.Status.FAILURE)
-
-func _on_rc_get_bool_pressed() -> void:
-	var path = _module_btn_path("Remote Config", "GetBoolButton")
-	if remote_config:
-		var val = remote_config.get_bool("feature_enabled", false)
-		log_message("[Remote Config] 'feature_enabled' = " + str(val))
-		flash_status(path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(path, TestButton.Status.FAILURE)
-
-func _on_rc_get_dict_pressed() -> void:
-	var path = _module_btn_path("Remote Config", "GetDictButton")
-	if remote_config:
-		var val = remote_config.get_dictionary("game_config")
-		log_message("[Remote Config] 'game_config' = " + str(val))
-		flash_status(path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(path, TestButton.Status.FAILURE)
-
-func _on_rc_set_defaults_pressed() -> void:
-	var path = _module_btn_path("Remote Config", "SetDefaultsButton")
-	if remote_config:
-		var defaults = {
-			"welcome_message": "Hello from Defaults!",
-			"min_version": 10,
-			"drop_rate": 0.05,
-			"feature_enabled": true
-		}
-		remote_config.set_defaults(defaults)
-		log_message("[Remote Config] Local defaults set")
-		flash_status(path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(path, TestButton.Status.FAILURE)
-
-func _on_rc_set_interval_pressed() -> void:
-	var path = _module_btn_path("Remote Config", "SetIntervalButton")
-	if remote_config:
-		remote_config.set_minimum_fetch_interval(0.0)
-		log_message("[Remote Config] Fetch interval set to 0s (Dev Mode)")
-		flash_status(path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(path, TestButton.Status.FAILURE)
-
-func _on_rc_listener_toggle_pressed() -> void:
-	var path = _module_btn_path("Remote Config", "ListenerButton")
-	if remote_config:
-		log_message("[Remote Config] Real-time updates toggle requested (Native log only)")
-		flash_status(path, TestButton.Status.SUCCESS)
-	else:
-		log_message("[Remote Config] Plugin not available")
-		flash_status(path, TestButton.Status.FAILURE)
+# (Remote Config Handlers removed - now using _run_action)
 
 func _on_config_updated(keys: Array) -> void:
 	log_message("[Remote Config] 📡 Config updated: " + str(keys))
