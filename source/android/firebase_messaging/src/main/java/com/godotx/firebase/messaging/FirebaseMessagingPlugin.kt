@@ -123,6 +123,9 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
             ),
             SignalInfo("messaging_error",
                 String::class.java
+            ),
+            SignalInfo("messaging_apn_token_received",
+                String::class.java
             )
         )
     }
@@ -228,6 +231,12 @@ class FirebaseMessagingPlugin(godot: Godot) : GodotPlugin(godot) {
             Log.e(TAG, "Error getting token", e)
             emitSignal("messaging_error", e.message ?: "token_error")
         }
+    }
+
+    @UsedByGodot
+    fun get_apns_token() {
+        Log.d(TAG, "get_apns_token called on Android - ignoring (iOS only)")
+        emitSignal("messaging_apn_token_received", "")
     }
 
     @UsedByGodot

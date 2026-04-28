@@ -399,11 +399,12 @@ func _update_messaging_view_state(view: Node) -> void:
 	var has_token = !_fcm_token.is_empty()
 	var permission_ok = _messaging_permission_granted
 
-	var perm_btn = view.get_node_or_null("PermissionButton")
-	var token_btn = view.get_node_or_null("GetTokenButton")
-	var sub_btn = view.get_node_or_null("SubscribeButton")
-	var unsub_btn = view.get_node_or_null("UnsubscribeButton")
-	var last_notification_btn = view.get_node_or_null("GetLastNotificationButton")
+	var list_path := "ScrollContainer/MarginContainer/List/"
+	var perm_btn = view.get_node_or_null(list_path + "PermissionButton")
+	var token_btn = view.get_node_or_null(list_path + "GetTokenButton")
+	var sub_btn = view.get_node_or_null(list_path + "SubscribeButton")
+	var unsub_btn = view.get_node_or_null(list_path + "UnsubscribeButton")
+	var last_notification_btn = view.get_node_or_null(list_path + "GetLastNotificationButton")
 
 	# Step 1: Permission button is always enabled
 	if perm_btn: perm_btn.disabled = false

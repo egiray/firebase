@@ -2,6 +2,8 @@
 #import "godotx_firebase_messaging_internal.h"
 #include "godotx_firebase_messaging.h"
 
+@import Firebase;
+
 @implementation GodotxAPNDelegate
 
 - (instancetype)init {
@@ -36,6 +38,7 @@
          withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
 
     NSDictionary *userInfo = notification.request.content.userInfo;
+    [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
     NSLog(@"[GodotxAPNDelegate] Received notification in foreground: %@", userInfo);
     self.lastNotificationInfo = userInfo;
 
@@ -60,6 +63,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
          withCompletionHandler:(void (^)(void))completionHandler {
 
     NSDictionary *userInfo = response.notification.request.content.userInfo;
+    [[FIRMessaging messaging] appDidReceiveMessage:userInfo];
     NSLog(@"[GodotxAPNDelegate] User tapped notification: %@", userInfo);
     self.lastNotificationInfo = userInfo;
 

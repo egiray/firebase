@@ -111,6 +111,14 @@ static func get_actions() -> Dictionary:
 				"validator": func(res: Variant): return typeof(res) == TYPE_FLOAT,
 				"failure_log": "Expected Float, but received invalid type"
 			},
+			"GetDoubleButton": {
+				"method": "get_double",
+				"args": ["drop_rate_v2", 0.0],
+				"mode": "getter",
+				"desc": "Getting 'drop_rate_v2' (double)",
+				"validator": func(res: Variant): return typeof(res) == TYPE_FLOAT,
+				"failure_log": "Expected Float/Double, but received invalid type"
+			},
 			"GetBoolButton": {
 				"method": "get_bool",
 				"args": ["feature_enabled", false],
@@ -138,10 +146,16 @@ static func get_actions() -> Dictionary:
 				"args": [],
 				"signal": "remote_config_listener_registered",
 				"desc": "Enabling Real-time updates listener"
+			},
+			"RemoveListenerButton": {
+				"method": "remove_config_update_listener",
+				"args": [],
+				"desc": "Removing Real-time updates listener"
 			}
 		},
 		"Messaging": {
 			"GetTokenButton": {"method": "get_token", "args": [], "signal": "messaging_token_received", "desc": "Requesting FCM token..."},
+			"GetAPNSTokenButton": {"method": "get_apns_token", "args": [], "signal": "messaging_apn_token_received", "desc": "Requesting APNs token (iOS)..."},
 			"PermissionButton": {"method": "request_permission", "args": [], "signal": "messaging_permission_granted", "desc": "Requesting permissions..."},
 			"SubscribeButton": {"method": "subscribe_to_topic", "args": ["test_topic"], "signal": "messaging_topic_subscribed", "desc": "Subscribing to: test_topic"},
 			"UnsubscribeButton": {"method": "unsubscribe_from_topic", "args": ["test_topic"], "signal": "messaging_topic_unsubscribed", "desc": "Unsubscribing from: test_topic"},
